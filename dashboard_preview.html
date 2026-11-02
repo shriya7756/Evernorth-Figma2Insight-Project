@@ -1,0 +1,515 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Standalone preview · Figma2Insight</title>
+<meta name="theme-color" content="#012E33">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+<style>
+:root {
+  --ink: #012e33;
+  --aqua: #3effc0;
+  --teal-600: #2f6b71;
+  --teal-200: #d2e1e2;
+  --teal-100: #e6efef;
+  --teal-50: #f3f7f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 28px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--teal-50);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: -28px -28px 24px;
+  padding: 24px 28px;
+  background: var(--ink);
+  color: #fff;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.brand {
+  color: var(--aqua);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.muted {
+  color: var(--teal-600);
+  font-size: 13px;
+}
+
+header .muted {
+  color: #afc8ca;
+}
+
+button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--aqua);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  background: #6effcf;
+  box-shadow: 0 8px 24px -8px rgb(62 255 192 / 0.6);
+}
+
+button:focus-visible {
+  outline: 3px solid var(--aqua);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+#status {
+  margin-bottom: 16px;
+}
+
+/* Dashboard layout */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(100px, auto);
+  gap: 14px;
+  align-items: stretch;
+}
+
+/* Widget cards */
+.card {
+  min-width: 0;
+  min-height: 100px;
+  padding: 16px;
+  background: white;
+  border: 1px solid var(--teal-200);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgb(1 46 51 / 0.04), 0 4px 16px -6px rgb(1 46 51 / 0.08);
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+.card h3 {
+  font-size: 15px;
+  line-height: 1.4;
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--teal-100);
+  color: var(--ink);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.tag.kpi {
+  background: var(--aqua);
+}
+
+.kpi-value {
+  font-size: clamp(20px, 2vw, 27px);
+  line-height: 1.3;
+  font-weight: bold;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+
+.chart-row {
+  margin: 12px 0;
+}
+
+.chart-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.chart-label span,
+.chart-label strong {
+  overflow-wrap: anywhere;
+}
+
+.bar {
+  height: 8px;
+  background: var(--teal-100);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: #22e8a9;
+  border-radius: 8px;
+}
+
+.review {
+  color: #8a5a07;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.error {
+  color: #b42318;
+}
+
+/* Mobile layout */
+@media (max-width: 760px) {
+  body {
+    padding: 14px;
+  }
+
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card {
+    width: 100%;
+    min-height: 120px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <div class="brand">Figma2Insight</div>
+    <h1 id="title">Generated dashboard</h1>
+    <div class="muted">Figma → XGBoost → dashboard preview</div>
+  </div>
+
+  <button type="button" onclick="loadDashboard()">Reload dashboard</button>
+</header>
+
+<main>
+<div id="status" class="muted" role="status">Loading generated page...</div>
+<div id="dashboard" class="dashboard"></div>
+</main>
+
+<script>
+// The API serves the latest page at /api/download/page.json; the static path
+// works when this file is opened with `python -m http.server` from the project root.
+const PAGE_URLS = ["/api/download/page.json", "/outputs/vista_pages/new_dashboard/page.json"];
+const GRID_COLUMNS = 12;
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[ch]));
+}
+
+function positiveInteger(value, fallback = 1) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number < 1) {
+    return fallback;
+  }
+
+  return Math.floor(number);
+}
+
+/*
+ * Normalize the widget grid and prevent two widgets from
+ * occupying the same grid cells.
+ *
+ * Existing positions are retained whenever they are valid
+ * and do not overlap a previously placed widget.
+ */
+function prepareWidgets(widgets) {
+  const occupied = new Set();
+
+  function cellsFor(col, row, colSpan, rowSpan) {
+    const cells = [];
+
+    for (let r = row; r < row + rowSpan; r++) {
+      for (let c = col; c < col + colSpan; c++) {
+        cells.push(`${r}:${c}`);
+      }
+    }
+
+    return cells;
+  }
+
+  function isFree(cells) {
+    return cells.every(cell => !occupied.has(cell));
+  }
+
+  function reserve(cells) {
+    cells.forEach(cell => occupied.add(cell));
+  }
+
+  return widgets.map((widget, index) => {
+    const sourceGrid = widget.grid || {};
+
+    let colSpan = Math.min(
+      positiveInteger(sourceGrid.colSpan, 3),
+      GRID_COLUMNS
+    );
+
+    let rowSpan = positiveInteger(sourceGrid.rowSpan, 2);
+
+    let col = Math.max(
+      0,
+      Math.min(
+        positiveInteger(Number(sourceGrid.colOffset) + 1, 1) - 1,
+        GRID_COLUMNS - colSpan
+      )
+    );
+
+    let row = Math.max(
+      0,
+      positiveInteger(Number(sourceGrid.rowOffset) + 1, index + 1) - 1
+    );
+
+    let cells = cellsFor(col, row, colSpan, rowSpan);
+
+    if (!isFree(cells)) {
+      // Search for the first free rectangle with the same size.
+      let found = false;
+
+      for (let r = 0; r < 1000 && !found; r++) {
+        for (
+          let c = 0;
+          c <= GRID_COLUMNS - colSpan;
+          c++
+        ) {
+          const candidateCells = cellsFor(
+            c,
+            r,
+            colSpan,
+            rowSpan
+          );
+
+          if (isFree(candidateCells)) {
+            col = c;
+            row = r;
+            cells = candidateCells;
+            found = true;
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        // Fallback: append a new row.
+        col = 0;
+        row = Math.max(0, ...Array.from(occupied, cell =>
+          Number(cell.split(":")[0])
+        )) + 1;
+
+        cells = cellsFor(col, row, colSpan, rowSpan);
+      }
+    }
+
+    reserve(cells);
+
+    return {
+      ...widget,
+      grid: {
+        colOffset: col,
+        rowOffset: row,
+        colSpan,
+        rowSpan
+      }
+    };
+  });
+}
+
+function renderWidget(widget) {
+  // componentType holds the classifier label (CHART, KPI_CARD...); type is the Vista widget type.
+  const type = String(widget.componentType || widget.type || "OTHER");
+  const safeType = escapeHTML(type);
+  const grid = widget.grid;
+
+  let content = "";
+
+  if (type === "CHART") {
+    const data = Array.isArray(widget.chartData)
+      ? widget.chartData
+      : [];
+
+    if (data.length) {
+      const max = Math.max(
+        ...data.map(d => Number(d.value) || 0),
+        1
+      );
+
+      content = data.map(d => {
+        const value = Number(d.value) || 0;
+        const width = Math.max(
+          0,
+          Math.min(100, value / max * 100)
+        );
+
+        return `
+          <div class="chart-row">
+            <div class="chart-label">
+              <span>${escapeHTML(d.label)}</span>
+              <strong>${escapeHTML(d.value)}</strong>
+            </div>
+            <div class="bar">
+              <span style="width:${width}%"></span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      content = `
+        <p class="muted">
+          Chart data was not extracted. Review the source design.
+        </p>
+      `;
+    }
+  } else {
+    const texts = Array.isArray(widget.text)
+      ? widget.text
+      : [];
+
+    if (type === "KPI_CARD") {
+      const numeric = texts.find(t => /\d/.test(String(t)));
+
+      content = `
+        <div class="kpi-value">
+          ${escapeHTML(numeric || "—")}
+        </div>
+        <div class="muted">
+          ${texts.map(escapeHTML).join(" · ")}
+        </div>
+      `;
+    } else if (texts.length) {
+      content = `
+        <p>${texts.map(escapeHTML).join("<br>")}</p>
+      `;
+    } else {
+      content = `
+        <p class="muted">Content needs configuration.</p>
+      `;
+    }
+  }
+
+  const colStart = grid.colOffset + 1;
+  const rowStart = grid.rowOffset + 1;
+
+  return `
+    <section
+      class="card"
+      style="
+        grid-column: ${colStart} / span ${grid.colSpan};
+        grid-row: ${rowStart} / span ${grid.rowSpan};
+      "
+    >
+      <span class="tag${type === "KPI_CARD" ? " kpi" : ""}">${safeType}</span>
+      <h3>${escapeHTML(widget.title || "Untitled widget")}</h3>
+      ${content}
+      ${
+        widget.needsReview
+          ? '<div class="review">Review source content</div>'
+          : ""
+      }
+    </section>
+  `;
+}
+
+async function loadDashboard() {
+  const status = document.getElementById("status");
+  const container = document.getElementById("dashboard");
+
+  status.textContent = "Loading...";
+  container.innerHTML = "";
+
+  try {
+    let response = null;
+    for (const url of PAGE_URLS) {
+      try {
+        response = await fetch(url + "?t=" + Date.now());
+        if (response.ok) break;
+      } catch (err) {
+        response = null;
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(
+        "Could not load page.json" + (response ? ` (HTTP ${response.status})` : "") +
+        ". Generate a layout in the Figma2Insight workspace first."
+      );
+    }
+
+    const page = await response.json();
+
+    document.getElementById("title").textContent =
+      page.dashboard?.name || "Generated Dashboard";
+
+    if (!Array.isArray(page.widgets) || !page.widgets.length) {
+      throw new Error("No widgets found in the generated page.");
+    }
+
+    const widgets = prepareWidgets(page.widgets);
+
+    container.innerHTML = widgets.map(renderWidget).join("");
+
+    status.textContent =
+      `${widgets.length} widgets · ` +
+      `${page.dashboard?.columns || GRID_COLUMNS} × ` +
+      `${page.dashboard?.rows || "auto"} grid`;
+  } catch (error) {
+    status.innerHTML =
+      '<span class="error">' +
+      escapeHTML(error.message) +
+      '</span><p class="muted">Run the local server from the project root.</p>';
+  }
+}
+
+loadDashboard();
+</script>
+
+</body>
+</html>
