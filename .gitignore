@@ -1,0 +1,27 @@
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Debug logs
+*.log
+
+# Generated history and uploads
+outputs/history/
+outputs/designs/
+
+# Backup and pre-change scripts
+*.backup.py
+*.prechange.py
+*.backup2.py
+
+# Generated review and backup datasets
+dataset/features/*backup*.csv
+dataset/features/duplicate_feature_review.csv
+dataset/features/unlabelled_components.csv
+dataset/features/unmatched_feature_components.csv
