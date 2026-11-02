@@ -9,7 +9,7 @@ import {
 import { toPackagePayload } from '../lib/validation'
 import type { PackageDetails } from '../types'
 
-const API_BASE = '/api'
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api'
 const DEFAULT_TIMEOUT_MS = 30_000
 const PIPELINE_TIMEOUT_MS = 180_000
 
