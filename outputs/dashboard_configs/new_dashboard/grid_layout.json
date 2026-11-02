@@ -1,0 +1,202 @@
+{
+  "dashboard_id": "141:2068",
+  "dashboard_name": "Dashboard 18",
+  "grid": {
+    "columns": 12,
+    "rows": 12
+  },
+  "dashboard_size": {
+    "width": 1440.0,
+    "height": 1100.0
+  },
+  "component_count": 11,
+  "components": [
+    {
+      "candidate_id": "141:2407",
+      "name": "Frame 12",
+      "predicted_type": "CHART",
+      "grid": {
+        "colOffset": 0,
+        "colSpan": 2,
+        "rowOffset": 0,
+        "rowSpan": 12
+      },
+      "position_relative_to_dashboard": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 184.0,
+        "height": 1100.0
+      }
+    },
+    {
+      "candidate_id": "141:2388",
+      "name": "Frame 12",
+      "predicted_type": "OTHER",
+      "grid": {
+        "colOffset": 1,
+        "colSpan": 6,
+        "rowOffset": 1,
+        "rowSpan": 2
+      },
+      "position_relative_to_dashboard": {
+        "x": 214.0,
+        "y": 151.0,
+        "width": 550.0,
+        "height": 42.0
+      }
+    },
+    {
+      "candidate_id": "141:2365",
+      "name": "Frame 12",
+      "predicted_type": "KPI_CARD",
+      "grid": {
+        "colOffset": 1,
+        "colSpan": 4,
+        "rowOffset": 2,
+        "rowSpan": 2
+      },
+      "position_relative_to_dashboard": {
+        "x": 214.0,
+        "y": 218.0,
+        "width": 279.0,
+        "height": 132.0
+      }
+    },
+    {
+      "candidate_id": "141:2349",
+      "name": "Frame 12",
+      "predicted_type": "KPI_CARD",
+      "grid": {
+        "colOffset": 4,
+        "colSpan": 3,
+        "rowOffset": 2,
+        "rowSpan": 2
+      },
+      "position_relative_to_dashboard": {
+        "x": 511.0,
+        "y": 218.0,
+        "width": 279.0,
+        "height": 141.0
+      }
+    },
+    {
+      "candidate_id": "141:2333",
+      "name": "Frame 12",
+      "predicted_type": "KPI_CARD",
+      "grid": {
+        "colOffset": 6,
+        "colSpan": 4,
+        "rowOffset": 2,
+        "rowSpan": 2
+      },
+      "position_relative_to_dashboard": {
+        "x": 808.0,
+        "y": 218.0,
+        "width": 279.0,
+        "height": 132.0
+      }
+    },
+    {
+      "candidate_id": "141:2317",
+      "name": "Frame 12",
+      "predicted_type": "KPI_CARD",
+      "grid": {
+        "colOffset": 9,
+        "colSpan": 3,
+        "rowOffset": 2,
+        "rowSpan": 2
+      },
+      "position_relative_to_dashboard": {
+        "x": 1105.0,
+        "y": 218.0,
+        "width": 299.0,
+        "height": 141.0
+      }
+    },
+    {
+      "candidate_id": "141:2193",
+      "name": "Frame 12",
+      "predicted_type": "OTHER",
+      "grid": {
+        "colOffset": 1,
+        "colSpan": 8,
+        "rowOffset": 4,
+        "rowSpan": 4
+      },
+      "position_relative_to_dashboard": {
+        "x": 214.0,
+        "y": 388.0,
+        "width": 790.0,
+        "height": 338.0
+      }
+    },
+    {
+      "candidate_id": "141:2143",
+      "name": "Frame 12",
+      "predicted_type": "KPI_CARD",
+      "grid": {
+        "colOffset": 8,
+        "colSpan": 4,
+        "rowOffset": 4,
+        "rowSpan": 5
+      },
+      "position_relative_to_dashboard": {
+        "x": 1026.0,
+        "y": 388.0,
+        "width": 378.0,
+        "height": 355.0
+      }
+    },
+    {
+      "candidate_id": "141:2194",
+      "name": "Frame 12",
+      "predicted_type": "TABLE",
+      "grid": {
+        "colOffset": 1,
+        "colSpan": 8,
+        "rowOffset": 5,
+        "rowSpan": 3
+      },
+      "position_relative_to_dashboard": {
+        "x": 236.0,
+        "y": 469.0,
+        "width": 746.0,
+        "height": 222.0
+      }
+    },
+    {
+      "candidate_id": "141:2070",
+      "name": "Frame 12",
+      "predicted_type": "CHART",
+      "grid": {
+        "colOffset": 5,
+        "colSpan": 7,
+        "rowOffset": 8,
+        "rowSpan": 4
+      },
+      "position_relative_to_dashboard": {
+        "x": 684.0,
+        "y": 788.0,
+        "width": 720.0,
+        "height": 256.0
+      }
+    },
+    {
+      "candidate_id": "141:2104",
+      "name": "Frame 12",
+      "predicted_type": "CHART",
+      "grid": {
+        "colOffset": 1,
+        "colSpan": 5,
+        "rowOffset": 8,
+        "rowSpan": 4
+      },
+      "position_relative_to_dashboard": {
+        "x": 214.0,
+        "y": 797.0,
+        "width": 448.0,
+        "height": 247.0
+      }
+    }
+  ]
+}
