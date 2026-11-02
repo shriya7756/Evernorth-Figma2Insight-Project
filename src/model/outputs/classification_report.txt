@@ -1,0 +1,30 @@
+Rows in CSV: 1159
+Labelled rows used: 844
+Unlabelled rows predicted: 315
+Classes: CHART, FILTER, HEADER, KPI_CARD, NAVBAR, OTHER, TABLE
+Holdout accuracy: 0.9882
+
+Classification report:
+              precision    recall  f1-score   support
+
+       CHART       0.97      0.97      0.97        30
+      FILTER       1.00      1.00      1.00         1
+      HEADER       1.00      1.00      1.00        19
+    KPI_CARD       1.00      1.00      1.00        36
+      NAVBAR       1.00      1.00      1.00         4
+       OTHER       0.98      0.98      0.98        52
+       TABLE       1.00      1.00      1.00        27
+
+    accuracy                           0.99       169
+   macro avg       0.99      0.99      0.99       169
+weighted avg       0.99      0.99      0.99       169
+
+Confusion matrix (rows=true, columns=predicted; class order below):
+CHART, FILTER, HEADER, KPI_CARD, NAVBAR, OTHER, TABLE
+[[29  0  0  0  0  1  0]
+ [ 0  1  0  0  0  0  0]
+ [ 0  0 19  0  0  0  0]
+ [ 0  0  0 36  0  0  0]
+ [ 0  0  0  0  4  0  0]
+ [ 1  0  0  0  0 51  0]
+ [ 0  0  0  0  0  0 27]]

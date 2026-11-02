@@ -1,0 +1,170 @@
+dashboard_id,candidate_id,name,label,predicted_label,correct
+dashboard16,2:61785,KPI Card / Appointments today,KPI_CARD,KPI_CARD,True
+dashboard_06,1:857,Causes Range,CHART,CHART,True
+dashboard16,2:64488,Chart / Prevalence by age band,CHART,CHART,True
+dashboard_08,1:106,Group 27,KPI_CARD,KPI_CARD,True
+dashboard16,2:63250,Design 07 – My Health Summary,OTHER,OTHER,True
+dashboard15,3:474,Termed this month,KPI_CARD,KPI_CARD,True
+dashboard_06,1:20,Covid19 Pandemic,CHART,CHART,True
+dashboard16,2:2446,Primary navigation,NAVBAR,NAVBAR,True
+dashboard16,2:66949,Table Row / Northwell Medical,TABLE,TABLE,True
+dashboard16,2:62554,KPI Card / Requests received,KPI_CARD,KPI_CARD,True
+dashboard15,3:1155,Status pill,OTHER,OTHER,True
+dashboard16,2:2585,Population and cost analytics,OTHER,OTHER,True
+dashboard16,2:64922,Donut plot,CHART,CHART,True
+dashboard15,3:1353,Charts,OTHER,CHART,False
+dashboard_07,1:22,Element-2,KPI_CARD,KPI_CARD,True
+dashboard16,2:3016,KPI Card,KPI_CARD,KPI_CARD,True
+dashboard15,3:289,Metric=Scripts filled,OTHER,OTHER,True
+dashboard_03,29:9,Frame 11,KPI_CARD,KPI_CARD,True
+dashboard15,3:758,Metric=Active care plans,OTHER,OTHER,True
+dashboard15,3:2312,Style=Alternate,OTHER,OTHER,True
+dashboard16,2:65078,KPI Card / Open escalations,KPI_CARD,KPI_CARD,True
+dashboard16,2:62802,Table Row / RXA-261126,TABLE,TABLE,True
+dashboard15,3:2110,recent claims / Table row,OTHER,OTHER,True
+dashboard15,3:1385,Status pill,OTHER,OTHER,True
+dashboard16,2:64565,Table Row / Long Island,TABLE,TABLE,True
+dashboard15,3:1092,Metric=Providers scored,OTHER,OTHER,True
+dashboard16,2:63337,Table / Recent claims,TABLE,TABLE,True
+dashboard15,3:763,Metric=High-risk members,OTHER,OTHER,True
+dashboard16,2:62397,Table Row / AUTH-260846,TABLE,TABLE,True
+dashboard16,2:63873,Top header,HEADER,HEADER,True
+dashboard16,2:63533,KPI Card / Pending reviews,KPI_CARD,KPI_CARD,True
+dashboard15,3:2751,utilisation by service,TABLE,TABLE,True
+dashboard16,2:65065,KPI Card / Avg resolution time,KPI_CARD,KPI_CARD,True
+dashboard16,2:65109,Chart / Contact volume – PNG,CHART,CHART,True
+dashboard16,2:2598,Chart axes and plot,CHART,CHART,True
+dashboard16,2:64885,Axes and plot,CHART,CHART,True
+dashboard16,2:64359,KPI Card / Preventive care rate,KPI_CARD,KPI_CARD,True
+dashboard_04,1:45,Card,CHART,CHART,True
+dashboard15,3:977,Local components,OTHER,OTHER,True
+dashboard16,2:62899,Top header,HEADER,HEADER,True
+dashboard16,2:64311,Page introduction,HEADER,HEADER,True
+dashboard15,3:320,Avg copay,KPI_CARD,KPI_CARD,True
+dashboard16,2:66949,Table Row / Northwell Medical,TABLE,TABLE,True
+dashboard16,2:64372,Population patterns,OTHER,OTHER,True
+dashboard16,2:2513,Page introduction,HEADER,HEADER,True
+dashboard16,2:63891,Page heading,HEADER,HEADER,True
+dashboard16,2:66541,Metric=Out-of-pocket spent 2,KPI_CARD,KPI_CARD,True
+dashboard16,2:62051,Table column / Duration,TABLE,TABLE,True
+dashboard16,2:62988,Axes and plot,CHART,CHART,True
+dashboard_01,12:199,department-card,CHART,CHART,True
+dashboard16,2:61959,Table column / Type,TABLE,TABLE,True
+dashboard16,2:62580,Metric pair,OTHER,OTHER,True
+dashboard16,2:64527,Table / Region summary,TABLE,TABLE,True
+dashboard15,3:1567,denial rate trend,CHART,CHART,True
+dashboard16,2:63963,Drug spend analytics,OTHER,OTHER,True
+dashboard16,2:63472,Page introduction,HEADER,HEADER,True
+dashboard16,2:61959,Table column / Type,TABLE,TABLE,True
+dashboard16,2:2674,Member activity table,TABLE,TABLE,True
+dashboard16,2:64950,Filters and notes,OTHER,OTHER,True
+dashboard16,2:62552,Hospital c05,OTHER,OTHER,True
+dashboard16,2:62937,KPI Card / 30-day readmission rate,KPI_CARD,KPI_CARD,True
+dashboard15,3:3683,Top Denial Reasons / Table row,OTHER,OTHER,True
+dashboard15,3:938,Metric=Rebates,OTHER,OTHER,True
+dashboard16,2:67000,Table Row / CVS Pharmacy,TABLE,TABLE,True
+dashboard16,2:65030,Page introduction,HEADER,HEADER,True
+dashboard16,2:61374,KPI Card / Open care plans,KPI_CARD,KPI_CARD,True
+dashboard15,3:3484,Table heading,OTHER,OTHER,True
+dashboard16,2:64488,Chart / Prevalence by age band,CHART,CHART,True
+dashboard15,3:283,Title and description,OTHER,OTHER,True
+dashboard16,2:62146,Heading and export,HEADER,HEADER,True
+dashboard15,3:2793,utilisation by service / Table row,OTHER,OTHER,True
+dashboard16,2:3005,KPI Card / Medication adherence,KPI_CARD,KPI_CARD,True
+dashboard16,2:66507,Risk and laboratory badges,OTHER,OTHER,True
+dashboard16,2:64373,Chart / Condition prevalence heatmap,CHART,CHART,True
+dashboard16,2:63621,Native plot,CHART,CHART,True
+dashboard16,2:61785,KPI Card / Appointments today,KPI_CARD,KPI_CARD,True
+dashboard16,2:61765,Page heading,HEADER,HEADER,True
+dashboard16,2:2641,Care cost by service chart,CHART,CHART,True
+dashboard15,3:1332,Metric=Cost trend,OTHER,OTHER,True
+dashboard16,2:63456,Top header,HEADER,HEADER,True
+dashboard16,2:63590,Native plot,CHART,CHART,True
+dashboard16,2:64605,Table Row / New Jersey,TABLE,TABLE,True
+dashboard16,2:63298,Chart / Monthly spend,CHART,CHART,True
+dashboard16,2:64951,Filter panel,FILTER,FILTER,True
+dashboard16,2:61400,Risk and care analytics,OTHER,OTHER,True
+dashboard16,2:66966,Table Row / Quest Diagnostics,TABLE,TABLE,True
+dashboard15,3:3192,Top Performers,TABLE,TABLE,True
+dashboard16,2:63603,Chart / Blood pressure,CHART,CHART,True
+dashboard16,2:62580,Metric pair,OTHER,OTHER,True
+dashboard15,3:2861,Table heading,OTHER,OTHER,True
+dashboard16,2:61407,Donut plot,CHART,CHART,True
+dashboard15,3:464,Total members,KPI_CARD,KPI_CARD,True
+dashboard16,2:65014,Top header,HEADER,HEADER,True
+dashboard16,2:63911,KPI Card / Total drug spend,KPI_CARD,KPI_CARD,True
+dashboard16,2:62417,Table Row / AUTH-260847,TABLE,TABLE,True
+dashboard16,2:64046,Table / Formulary tiers,TABLE,TABLE,True
+dashboard16,2:67000,Table Row / CVS Pharmacy,TABLE,TABLE,True
+dashboard16,2:65031,Heading and export,HEADER,HEADER,True
+dashboard16,2:63474,Page heading,HEADER,HEADER,True
+dashboard16,2:61886,Column-built appointment table,TABLE,TABLE,True
+dashboard16,2:61824,KPI Card / Utilisation %,KPI_CARD,KPI_CARD,True
+dashboard15,3:3492,Header row,OTHER,OTHER,True
+dashboard15,3:3201,Header row,OTHER,OTHER,True
+dashboard16,2:62976,Readmission analytics,OTHER,OTHER,True
+dashboard16,2:61798,KPI Card / No-show rate,KPI_CARD,KPI_CARD,True
+dashboard16,2:61435,Chart / Care plans opened per month,CHART,CHART,True
+dashboard16,2:61277,Primary navigation,NAVBAR,NAVBAR,True
+dashboard_07,1:52,Element-6,CHART,CHART,True
+dashboard16,2:64774,Heading and export,HEADER,HEADER,True
+dashboard15,3:931,Metric=Specialty spend,OTHER,OTHER,True
+dashboard16,2:65051,Key performance indicators,OTHER,OTHER,True
+dashboard15,3:3674,Style=Alternate,OTHER,OTHER,True
+dashboard15,3:282,Page title,OTHER,OTHER,True
+dashboard16,2:61935,Table column / Provider,TABLE,TABLE,True
+dashboard16,2:62168,Metric pair,OTHER,OTHER,True
+dashboard_08,1:119,Group 31,KPI_CARD,KPI_CARD,True
+dashboard16,2:67034,Table Row / Northwell Medical,TABLE,TABLE,True
+dashboard16,I2:66515;2:66509,KPI Card / Deductible used,KPI_CARD,KPI_CARD,True
+dashboard15,3:362,Status pill,OTHER,OTHER,True
+dashboard16,2:61414,Distribution legend,OTHER,OTHER,True
+dashboard16,2:67017,Table Row / Westside Imaging,TABLE,TABLE,True
+dashboard15,3:3343,Needs Improvement / Table row,OTHER,OTHER,True
+dashboard16,2:64313,Page heading,HEADER,HEADER,True
+dashboard16,2:62551,Authorization overview,OTHER,OTHER,True
+dashboard16,2:65051,Key performance indicators,OTHER,OTHER,True
+dashboard_03,35:80,Frame 14,KPI_CARD,KPI_CARD,True
+dashboard16,2:63507,KPI Card / Abnormal results,KPI_CARD,KPI_CARD,True
+dashboard_07,1:29,Element-3,KPI_CARD,KPI_CARD,True
+dashboard15,3:2021,quality by service,CHART,CHART,True
+dashboard16,2:64807,KPI Card / Premium revenue,KPI_CARD,KPI_CARD,True
+dashboard16,2:65014,Top header,HEADER,HEADER,True
+dashboard16,2:62481,Primary navigation,NAVBAR,NAVBAR,True
+dashboard16,2:63910,Key performance indicators,OTHER,OTHER,True
+dashboard16,2:64860,KPI Card / Member retention,KPI_CARD,KPI_CARD,True
+dashboard16,2:61327,Heading and export,HEADER,HEADER,True
+dashboard16,2:64332,Key performance indicators,OTHER,OTHER,True
+dashboard16,2:61882,Table / Today's appointments,TABLE,TABLE,True
+dashboard16,2:61402,Chart / Risk tiers,CHART,CHART,True
+dashboard16,2:62280,Table heading,HEADER,HEADER,True
+dashboard15,3:3738,High-Cost Claimants,TABLE,TABLE,True
+dashboard16,2:61824,KPI Card / Utilisation %,KPI_CARD,KPI_CARD,True
+dashboard16,2:64833,Metric row,OTHER,OTHER,True
+dashboard_07,1:89,Element-8,CHART,OTHER,False
+dashboard16,2:63337,Table / Recent claims,TABLE,TABLE,True
+dashboard16,2:65065,KPI Card / Avg resolution time,KPI_CARD,KPI_CARD,True
+dashboard15,3:3,Local components,OTHER,OTHER,True
+dashboard16,2:64874,Chart / Premium vs. claims,CHART,CHART,True
+dashboard15,3:3074,Style=Total,OTHER,OTHER,True
+dashboard15,3:2298,Style=Default,OTHER,OTHER,True
+dashboard15,3:3648,Table heading,OTHER,OTHER,True
+dashboard15,3:144,Paid amount,KPI_CARD,KPI_CARD,True
+dashboard16,2:66536,KPI Card / Out-of-pocket spent,KPI_CARD,KPI_CARD,True
+dashboard16,2:64262,Primary navigation,NAVBAR,NAVBAR,True
+dashboard16,2:62166,Authorization overview,OTHER,OTHER,True
+dashboard15,3:3048,Style=Default,OTHER,OTHER,True
+dashboard16,2:62628,Native plot,CHART,CHART,True
+dashboard_07,1:60,Element-7,CHART,CHART,True
+dashboard16,2:61887,Table column / Time,TABLE,TABLE,True
+dashboard16,2:64847,KPI Card / Quality score,KPI_CARD,KPI_CARD,True
+dashboard16,2:64820,KPI Card / Medical loss ratio,KPI_CARD,KPI_CARD,True
+dashboard16,2:62195,Metric pair,OTHER,OTHER,True
+dashboard16,2:66515,KPI Card / Deductible used,KPI_CARD,KPI_CARD,True
+dashboard15,3:1126,Local components,OTHER,OTHER,True
+dashboard16,2:62977,Chart / Readmission rate by month,CHART,CHART,True
+dashboard15,3:32,Status pill,OTHER,OTHER,True
+dashboard16,2:61435,Chart / Care plans opened per month,CHART,CHART,True
+dashboard16,2:62916,Heading and export,HEADER,HEADER,True
+dashboard16,2:63937,KPI Card / Specialty spend,KPI_CARD,KPI_CARD,True
+dashboard16,2:63614,Axes and plot,CHART,CHART,True
