@@ -9,10 +9,19 @@ import {
 import { toPackagePayload } from '../lib/validation'
 import type { PackageDetails } from '../types'
 
+const RENDER_BACKEND_URL = 'https://evernorth-figma2insight-project.onrender.com/api'
+
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     const custom = window.localStorage.getItem('f2i_api_base')
     if (custom) return custom.trim().replace(/\/+$/, '')
+
+    // When running on Netlify, connect directly to Render backend!
+    // Netlify proxy has a 6MB upload body limit which drops large Figma JSON exports (e.g. 43MB).
+    // Direct CORS requests bypass this limit and allow files up to 50MB.
+    if (window.location.hostname.includes('netlify.app')) {
+      return RENDER_BACKEND_URL
+    }
   }
   const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined
   if (envBase) return envBase.trim().replace(/\/+$/, '')
@@ -134,7 +143,7 @@ export async function uploadFigmaFile(file: File): Promise<LoadedDesign> {
   const data = await request<Omit<LoadedDesign, 'source'>>('/upload', {
     method: 'POST',
     body: formData,
-    timeoutMs: 120_000,
+    timeoutMs: 300_000,
   })
   return { ...data, source: 'upload' }
 }

@@ -10,7 +10,7 @@ export const STAGES = [
   { key: 'normalize', title: 'Normalize', description: 'Find component candidates in the design tree.' },
   { key: 'preprocess', title: 'Extract features', description: 'Compute 20 geometric, text and graphic features.' },
   { key: 'classify', title: 'Classify components', description: 'XGBoost labels KPI cards, charts, tables and more.' },
-  { key: 'layout', title: 'Generate layout', description: 'Map to a 12×12 grid and assemble Vista page.json.' },
+  { key: 'layout', title: 'Generate layout', description: 'Map to a 12×12 grid and assemble Dashboard page.json.' },
 ] as const
 
 export type StageKey = (typeof STAGES)[number]['key']

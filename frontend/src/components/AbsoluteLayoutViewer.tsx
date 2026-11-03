@@ -110,16 +110,160 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
   const [scale, setScale] = useState(1)
   const [selected, setSelected] = useState<VistaWidget | null>(null)
 
+  // Non-overlapping 12-column grid layout resolver
+  // Ensures every single tile occupies its own dedicated space with zero overlapping.
+  const resolvedTiles = useMemo(() => {
+    const COLS = 12
+    const TYPE_PRIORITY: Record<string, number> = {
+      KPI_CARD: 1,
+      CHART: 2,
+      TABLE: 3,
+      OTHER: 4,
+    }
+
+    const items = tiles
+      .map((tile, idx) => {
+        const widgetId = tile.widgetId || tile.widgetIds?.[0]
+        const widget = widgetId ? widgetMap.get(widgetId) : undefined
+        const type = widget?.componentType || 'OTHER'
+        const grid = tile.grid ?? widget?.grid
+        const pos = widget?.position
+
+        const colSpan = Math.min(
+          12,
+          Math.max(1, grid?.colSpan ?? (pos?.width ? Math.round((pos.width / dashboardSize.width) * 12) : type === 'KPI_CARD' ? 3 : 6)),
+        )
+        const rowSpan = Math.min(
+          12,
+          Math.max(1, grid?.rowSpan ?? (pos?.height ? Math.max(1, Math.round((pos.height / dashboardSize.height) * 12)) : 2)),
+        )
+        const desiredCol = Math.min(
+          12 - colSpan,
+          Math.max(0, grid?.colOffset ?? (pos?.x ? Math.floor((pos.x / dashboardSize.width) * 12) : 0)),
+        )
+        const desiredRow = Math.max(0, grid?.rowOffset ?? (pos?.y ? Math.floor((pos.y / dashboardSize.height) * 12) : 0))
+
+        return {
+          tile,
+          widget,
+          type,
+          idx,
+          colSpan,
+          rowSpan,
+          desiredCol,
+          desiredRow,
+          priority: TYPE_PRIORITY[type] ?? 99,
+        }
+      })
+      .sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority
+        if (a.desiredRow !== b.desiredRow) return a.desiredRow - b.desiredRow
+        return a.desiredCol - b.desiredCol
+      })
+
+    const occupied: boolean[][] = []
+    const isOccupied = (r: number, c: number) => Boolean(occupied[r]?.[c])
+    const markOccupied = (r: number, c: number) => {
+      if (!occupied[r]) occupied[r] = []
+      occupied[r][c] = true
+    }
+
+    const fits = (startR: number, startC: number, spanR: number, spanC: number) => {
+      if (startC + spanC > COLS) return false
+      for (let r = startR; r < startR + spanR; r++) {
+        for (let c = startC; c < startC + spanC; c++) {
+          if (isOccupied(r, c)) return false
+        }
+      }
+      return true
+    }
+
+    const placed: Array<{
+      tile: VistaTile
+      widget?: VistaWidget
+      type: string
+      colOffset: number
+      rowOffset: number
+      colSpan: number
+      rowSpan: number
+      idx: number
+    }> = []
+
+    for (const item of items) {
+      let placedR = item.desiredRow
+      let placedC = item.desiredCol
+      let found = false
+
+      for (let r = item.desiredRow; r < item.desiredRow + 50; r++) {
+        const cStart = r === item.desiredRow ? item.desiredCol : 0
+        for (let c = cStart; c <= COLS - item.colSpan; c++) {
+          if (fits(r, c, item.rowSpan, item.colSpan)) {
+            placedR = r
+            placedC = c
+            found = true
+            break
+          }
+        }
+        if (found) break
+      }
+
+      if (!found) {
+        let r = 0
+        while (!found) {
+          for (let c = 0; c <= COLS - item.colSpan; c++) {
+            if (fits(r, c, item.rowSpan, item.colSpan)) {
+              placedR = r
+              placedC = c
+              found = true
+              break
+            }
+          }
+          r++
+        }
+      }
+
+      for (let r = placedR; r < placedR + item.rowSpan; r++) {
+        for (let c = placedC; c < placedC + item.colSpan; c++) {
+          markOccupied(r, c)
+        }
+      }
+
+      placed.push({
+        tile: item.tile,
+        widget: item.widget,
+        type: item.type,
+        colOffset: placedC,
+        rowOffset: placedR,
+        colSpan: item.colSpan,
+        rowSpan: item.rowSpan,
+        idx: item.idx,
+      })
+    }
+
+    return placed
+  }, [tiles, widgetMap, dashboardSize])
+
+  const GAP = 10
+  const COLS = 12
+  const maxRow = useMemo(() => {
+    return Math.max(12, ...resolvedTiles.map((t) => t.rowOffset + t.rowSpan))
+  }, [resolvedTiles])
+
+  const canvasWidth = dashboardSize.width
+  const cellW = (canvasWidth - GAP * (COLS + 1)) / COLS
+  const cellH = Math.max(72, (dashboardSize.height - GAP * 13) / 12)
+  const canvasHeight = Math.max(dashboardSize.height, GAP + maxRow * (cellH + GAP))
+
   // Fit the canvas to its container; ResizeObserver also reacts to sidebar/layout changes.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const update = () => setScale(Math.min(1, el.clientWidth / dashboardSize.width))
+    const update = () => setScale(Math.min(1, el.clientWidth / canvasWidth))
     update()
     const observer = new ResizeObserver(update)
     observer.observe(el)
     return () => observer.disconnect()
-  }, [dashboardSize.width])
+  }, [canvasWidth])
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -145,59 +289,39 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
             )}
           </ul>
           <p className="font-mono text-xs text-teal-500">
-            {Math.round(dashboardSize.width)}×{Math.round(dashboardSize.height)} px · {(scale * 100).toFixed(0)}%
+            {Math.round(canvasWidth)}×{Math.round(canvasHeight)} px · {(scale * 100).toFixed(0)}% · Zero overlap
           </p>
         </div>
 
         <div ref={containerRef} className="mt-4 w-full overflow-hidden">
           {/* Reserve the scaled size so the transformed canvas never causes horizontal overflow. */}
-          <div style={{ width: dashboardSize.width * scale, height: dashboardSize.height * scale }}>
+          <div style={{ width: canvasWidth * scale, height: canvasHeight * scale }}>
             <div
-              className="relative origin-top-left rounded-xl bg-teal-50 ring-1 ring-teal-200"
-              style={{ width: dashboardSize.width, height: dashboardSize.height, transform: `scale(${scale})` }}
+              className="relative origin-top-left rounded-xl bg-teal-50/60 ring-1 ring-teal-200"
+              style={{ width: canvasWidth, height: canvasHeight, transform: `scale(${scale})` }}
             >
-              {tiles.map((tile, idx) => {
-                const widgetId = tile.widgetId || tile.widgetIds?.[0]
-                const widget = widgetId ? widgetMap.get(widgetId) : undefined
-                const type = widget?.componentType || 'OTHER'
+              {resolvedTiles.map((item) => {
+                const widget = item.widget
+                const type = item.type
                 const s = styleFor(type)
                 const label = widget?.kpiLabel || widget?.semanticLabel || widget?.title || 'Untitled widget'
                 const isSelected = !!widget && selected?.id === widget.id
 
-                // Use grid position (12×12) if available, fall back to Figma absolute px
-                const grid = tile.grid ?? widget?.grid
-                const W = dashboardSize.width
-                const H = dashboardSize.height
-                const COLS = 12
-                const ROWS = 12
-                const GAP = 6 // px gap between tiles
-
-                let left: number, top: number, width: number, height: number
-                if (grid) {
-                  const cellW = (W - GAP * (COLS + 1)) / COLS
-                  const cellH = (H - GAP * (ROWS + 1)) / ROWS
-                  left = GAP + grid.colOffset * (cellW + GAP)
-                  top = GAP + grid.rowOffset * (cellH + GAP)
-                  width = grid.colSpan * cellW + (grid.colSpan - 1) * GAP
-                  height = grid.rowSpan * cellH + (grid.rowSpan - 1) * GAP
-                } else {
-                  const pos = widget?.position
-                  left = pos?.x ?? 0
-                  top = pos?.y ?? 0
-                  width = pos?.width ?? 100
-                  height = pos?.height ?? 100
-                }
+                const left = GAP + item.colOffset * (cellW + GAP)
+                const top = GAP + item.rowOffset * (cellH + GAP)
+                const width = item.colSpan * cellW + (item.colSpan - 1) * GAP
+                const height = item.rowSpan * cellH + (item.rowSpan - 1) * GAP
 
                 return (
                   <button
                     type="button"
-                    key={tile.tileId || tile.id || idx}
+                    key={item.tile.tileId || item.tile.id || item.idx}
                     disabled={!widget}
                     onClick={() => setSelected(isSelected ? null : widget ?? null)}
                     aria-pressed={isSelected}
                     aria-label={`${s.label}: ${label}`}
                     className={cn(
-                      'absolute flex flex-col overflow-hidden rounded-lg border p-2.5 text-left shadow-sm',
+                      'absolute flex flex-col overflow-hidden rounded-lg border p-3 text-left shadow-xs',
                       'transition-[box-shadow,border-color,transform] duration-200 hover:z-10 hover:-translate-y-px hover:shadow-raised',
                       s.tile,
                       isSelected && 'z-10 border-ink ring-4 ring-aqua-400',

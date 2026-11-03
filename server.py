@@ -111,7 +111,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Figma2Insight API",
-    description="Transforms Figma dashboard designs into structured Vista page.json using an XGBoost classifier.",
+    description="Transforms Figma dashboard designs into structured Dashboard page.json using an XGBoost classifier.",
     version="1.1.0",
     lifespan=lifespan,
 )
@@ -255,7 +255,7 @@ def get_status(store: HistoryStore = Depends(get_history_store)):
             "XGBoost Classifier",
             "Heuristic Prediction Cleaning",
             "12x12 CSS Grid Layout Mapping",
-            "Vista Slide page.json Assembly"
+            "Dashboard Slide page.json Assembly"
         ],
         "pluginDataReceived": plugin_data_received,
         "designName": design_name,
@@ -374,13 +374,20 @@ async def upload_figma_file(file: UploadFile = File(...)):
     nodes, doc_name, dims = _extract_nodes(figma_data)
     if not nodes:
         raise HTTPException(status_code=422, detail="No design layers were found in this file.")
+
+    # Save to server's active design store so pipeline stages can process without re-uploading
+    ACTIVE_FIGMA.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(ACTIVE_FIGMA, figma_data)
+
+    # For large uploads (> 2 MB), avoid echoing the entire JSON back over HTTP
+    is_large = len(content) > 2 * 1024 * 1024
     return {
         "success": True,
         "filename": Path(file.filename).name[:200],
         "documentName": doc_name,
         "nodeCount": len(nodes),
         "dimensions": dims,
-        "figmaJson": figma_data
+        "figmaJson": None if is_large else figma_data
     }
 
 
@@ -585,7 +592,7 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
 
 @app.get("/api/download/page.json")
 def download_page_json():
-    """Download the generated Vista page.json file."""
+    """Download the generated Dashboard page.json file."""
     if not PAGE_FILE.exists():
         raise HTTPException(status_code=404, detail="No generated page.json found. Run generation first.")
     return FileResponse(path=str(PAGE_FILE), filename="page.json", media_type="application/json")
@@ -680,7 +687,7 @@ async def plugin_ingest(file: UploadFile = File(None)):
     except Exception as exc:
         raise _internal_error("Generation", exc) from exc
     return {
-        "message": "Design received and Vista page.json generated.",
+        "message": "Design received and Dashboard page.json generated.",
         "widgets": result["stats"]["widgets"],
         "tiles": result["stats"]["tiles"]
     }

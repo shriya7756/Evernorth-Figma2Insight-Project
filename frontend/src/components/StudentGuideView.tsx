@@ -91,18 +91,18 @@ export const StudentGuideView: React.FC = () => {
             title={
               <span className="flex items-center gap-2">
                 <Layers aria-hidden className="size-5 text-teal-600" />
-                Figma element → Vista widget mapping
+                Dashboard widget mapping
               </span>
             }
           />
         </div>
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full min-w-[36rem] text-left text-sm">
-            <caption className="sr-only">How Figma elements map to Vista widget types</caption>
+            <caption className="sr-only">How Figma elements map to Dashboard widget types</caption>
             <thead className="border-y border-teal-100 bg-teal-50 text-xs uppercase tracking-wider text-teal-600">
               <tr>
                 <th scope="col" className="px-5 py-3 font-semibold sm:px-6">Figma element</th>
-                <th scope="col" className="px-5 py-3 font-semibold">Vista widget</th>
+                <th scope="col" className="px-5 py-3 font-semibold">Dashboard widget</th>
                 <th scope="col" className="px-5 py-3 font-semibold">Key configuration</th>
               </tr>
             </thead>

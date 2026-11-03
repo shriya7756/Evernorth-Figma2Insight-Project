@@ -57,8 +57,8 @@ export function usePipeline() {
   const execute = useCallback(
     async (stage: StageKey): Promise<boolean> => {
       if (!design) return false
-      // Only uploaded designs need to travel with the request; plugin designs are already on the server.
-      const source = design.source === 'upload' ? { figmaJson: design.figmaJson } : {}
+      // Only send figmaJson if present; if null/server-cached, the server reads the uploaded design from its store.
+      const source = design.figmaJson ? { figmaJson: design.figmaJson } : {}
 
       if (stage === 'layout') {
         const problems = validatePackageDetails(packageDetails)
