@@ -24,7 +24,6 @@ const isNegativeTrend = (trend: string) => /^[−-]|↓|↘/.test(trend.trim())
 function WidgetInspector({ widget, onClose }: { widget: VistaWidget; onClose: () => void }) {
   const rows: [string, React.ReactNode][] = [
     ['Component type', styleFor(widget.componentType).label],
-    ['Vista type', <code key="t" className="font-mono text-xs">{widget.type}</code>],
     ['Semantic label', widget.semanticLabel || '—'],
     ['Source ID', <code key="s" className="break-all font-mono text-xs">{widget.sourceComponentId || '—'}</code>],
   ]
@@ -162,9 +161,32 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
                 const widget = widgetId ? widgetMap.get(widgetId) : undefined
                 const type = widget?.componentType || 'OTHER'
                 const s = styleFor(type)
-                const pos = widget?.position
                 const label = widget?.kpiLabel || widget?.semanticLabel || widget?.title || 'Untitled widget'
                 const isSelected = !!widget && selected?.id === widget.id
+
+                // Use grid position (12×12) if available, fall back to Figma absolute px
+                const grid = tile.grid ?? widget?.grid
+                const W = dashboardSize.width
+                const H = dashboardSize.height
+                const COLS = 12
+                const ROWS = 12
+                const GAP = 6 // px gap between tiles
+
+                let left: number, top: number, width: number, height: number
+                if (grid) {
+                  const cellW = (W - GAP * (COLS + 1)) / COLS
+                  const cellH = (H - GAP * (ROWS + 1)) / ROWS
+                  left = GAP + grid.colOffset * (cellW + GAP)
+                  top = GAP + grid.rowOffset * (cellH + GAP)
+                  width = grid.colSpan * cellW + (grid.colSpan - 1) * GAP
+                  height = grid.rowSpan * cellH + (grid.rowSpan - 1) * GAP
+                } else {
+                  const pos = widget?.position
+                  left = pos?.x ?? 0
+                  top = pos?.y ?? 0
+                  width = pos?.width ?? 100
+                  height = pos?.height ?? 100
+                }
 
                 return (
                   <button
@@ -180,7 +202,7 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
                       s.tile,
                       isSelected && 'z-10 border-ink ring-4 ring-aqua-400',
                     )}
-                    style={{ left: pos?.x ?? 0, top: pos?.y ?? 0, width: pos?.width ?? 100, height: pos?.height ?? 100 }}
+                    style={{ left, top, width, height }}
                   >
                     <span className="flex items-center justify-between gap-1">
                       <span className={cn('rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold', s.chip)}>{type}</span>

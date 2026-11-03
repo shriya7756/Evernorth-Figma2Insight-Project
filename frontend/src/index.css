@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Scale the entire UI to 75% so it fits comfortably at 100% browser zoom */
+html {
+  zoom: 0.75;
+}
+
 /*
  * Figma2Insight design tokens.
  * Palette: dark teal (#012E33), aquamarine (#3EFFC0) and white, plus
