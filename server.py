@@ -215,6 +215,16 @@ def _package_meta(request: GenerateRequest) -> Optional[Dict[str, Any]]:
 # API ENDPOINTS
 # ============================================================================
 
+@app.get("/")
+def root_health():
+    return {
+        "status": "online",
+        "service": "Figma2Insight API",
+        "version": "1.1.0",
+        "docs": "/docs",
+        "frontend": "https://figma2insight.netlify.app",
+    }
+
 @app.get("/api/status")
 def get_status(store: HistoryStore = Depends(get_history_store)):
     """Return backend health, ML model status and storage status."""
