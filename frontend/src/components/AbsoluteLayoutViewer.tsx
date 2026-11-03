@@ -3,6 +3,7 @@ import { MousePointerClick, X } from 'lucide-react'
 import { VistaTile, VistaWidget } from '../types'
 import { cn } from '../lib/cn'
 import { Badge } from './ui/Badge'
+import { Button } from './ui/Button'
 
 interface AbsoluteLayoutViewerProps {
   tiles: VistaTile[]
@@ -129,14 +130,28 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
         const grid = tile.grid ?? widget?.grid
         const pos = widget?.position
 
-        const colSpan = Math.min(
+        let colSpan = Math.min(
           12,
           Math.max(1, grid?.colSpan ?? (pos?.width ? Math.round((pos.width / dashboardSize.width) * 12) : type === 'KPI_CARD' ? 3 : 6)),
         )
-        const rowSpan = Math.min(
+        let rowSpan = Math.min(
           12,
           Math.max(1, grid?.rowSpan ?? (pos?.height ? Math.max(1, Math.round((pos.height / dashboardSize.height) * 12)) : 2)),
         )
+
+        // Compact constraints: prevent huge empty blocks and excessive scrolling
+        if (type === 'OTHER') {
+          // Headers, subtitles, annotations take at most 1 compact row
+          rowSpan = 1
+        } else if (type === 'KPI_CARD') {
+          rowSpan = 2
+          colSpan = Math.min(Math.max(colSpan, 2), 3)
+        } else if (type === 'CHART' || type === 'TABLE') {
+          // Charts and tables capped at 3 rows so they don't stretch the page
+          rowSpan = Math.min(Math.max(rowSpan, 2), 3)
+          colSpan = Math.min(Math.max(colSpan, 4), 6)
+        }
+
         const desiredCol = Math.min(
           12 - colSpan,
           Math.max(0, grid?.colOffset ?? (pos?.x ? Math.floor((pos.x / dashboardSize.width) * 12) : 0)),
@@ -251,8 +266,9 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
 
   const canvasWidth = dashboardSize.width
   const cellW = (canvasWidth - GAP * (COLS + 1)) / COLS
-  const cellH = Math.max(72, (dashboardSize.height - GAP * 13) / 12)
-  const canvasHeight = Math.max(dashboardSize.height, GAP + maxRow * (cellH + GAP))
+  // Compact cell height to prevent wasted vertical space and excessive scrolling
+  const cellH = Math.max(48, Math.min(54, (dashboardSize.height - GAP * 13) / 16))
+  const canvasHeight = Math.max(Math.round(dashboardSize.height * 0.65), GAP + maxRow * (cellH + GAP))
 
   // Fit the canvas to its container; ResizeObserver also reacts to sidebar/layout changes.
   useEffect(() => {
@@ -265,6 +281,16 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
     return () => observer.disconnect()
   }, [canvasWidth])
 
+  // Dismiss inspector drawer on Escape key
+  useEffect(() => {
+    if (!selected) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelected(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selected])
+
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     widgets.forEach((w) => {
@@ -275,7 +301,7 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
   }, [widgets])
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="relative w-full">
       <div className="min-w-0 rounded-2xl border border-teal-200/80 bg-white p-4 shadow-card sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ul className="flex flex-wrap gap-2" aria-label="Component types">
@@ -289,7 +315,7 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
             )}
           </ul>
           <p className="font-mono text-xs text-teal-500">
-            {Math.round(canvasWidth)}×{Math.round(canvasHeight)} px · {(scale * 100).toFixed(0)}% · Zero overlap
+            {Math.round(canvasWidth)}×{Math.round(canvasHeight)} px · {(scale * 100).toFixed(0)}%
           </p>
         </div>
 
@@ -321,8 +347,8 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
                     aria-pressed={isSelected}
                     aria-label={`${s.label}: ${label}`}
                     className={cn(
-                      'absolute flex flex-col overflow-hidden rounded-lg border p-3 text-left shadow-xs',
-                      'transition-[box-shadow,border-color,transform] duration-200 hover:z-10 hover:-translate-y-px hover:shadow-raised',
+                      'absolute flex flex-col overflow-hidden rounded-lg border p-2.5 text-left shadow-xs',
+                      'transition-[box-shadow,border-color,transform] duration-200 hover:z-10 hover:-translate-y-px hover:shadow-raised cursor-pointer',
                       s.tile,
                       isSelected && 'z-10 border-ink ring-4 ring-aqua-400',
                     )}
@@ -337,9 +363,9 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
                       )}
                     </span>
                     {type === 'KPI_CARD' ? (
-                      <span className="mt-1.5 block space-y-0.5">
-                        <span className="line-clamp-2 block text-xs font-medium text-teal-700">{label}</span>
-                        <span className="block text-xl font-bold tracking-tight text-ink">{widget?.kpiValue || '—'}</span>
+                      <span className="mt-1 block space-y-0.5">
+                        <span className="line-clamp-1 block text-xs font-medium text-teal-700">{label}</span>
+                        <span className="block text-lg font-bold tracking-tight text-ink">{widget?.kpiValue || '—'}</span>
                         {widget?.trend && (
                           <span
                             className={cn(
@@ -352,8 +378,8 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
                         )}
                       </span>
                     ) : widget?.chartData && widget.chartData.length > 0 ? (
-                      <span className="mt-1.5 block space-y-0.5 overflow-hidden">
-                        {widget.chartData.slice(0, 4).map((d, i) => (
+                      <span className="mt-1 block space-y-0.5 overflow-hidden">
+                        {widget.chartData.slice(0, 3).map((d, i) => (
                           <span key={i} className="flex justify-between text-[11px] text-teal-700">
                             <span className="truncate">{d.label}</span>
                             <span className="ml-1 font-semibold text-ink">{d.value}</span>
@@ -361,7 +387,7 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
                         ))}
                       </span>
                     ) : (
-                      <span className="mt-1.5 line-clamp-3 block text-[11px] text-teal-600">
+                      <span className="mt-1 line-clamp-2 block text-[11px] text-teal-600">
                         {(widget?.text ?? []).slice(0, 4).join(', ') || label}
                       </span>
                     )}
@@ -398,19 +424,56 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
         </ul>
       </div>
 
-      <aside className="h-fit rounded-2xl border border-teal-200/80 bg-white p-5 shadow-card xl:sticky xl:top-24" aria-live="polite">
-        {selected ? (
-          <WidgetInspector widget={selected} onClose={() => setSelected(null)} />
-        ) : (
-          <div className="flex flex-col items-center py-8 text-center">
-            <span className="grid size-12 place-items-center rounded-2xl bg-teal-100 text-teal-600">
-              <MousePointerClick aria-hidden className="size-5" />
-            </span>
-            <p className="mt-3 text-sm font-semibold text-ink">Inspect a component</p>
-            <p className="mt-1 text-sm text-teal-600">Select any tile to see its type, values and source geometry.</p>
+      {/* Slide-over Inspector Drawer (Right side, dismiss on outside click or Esc) */}
+      {selected && (
+        <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="slide-over-title">
+          {/* Backdrop: click anywhere outside to close */}
+          <div
+            className="fixed inset-0 bg-ink/30 backdrop-blur-xs transition-opacity animate-fade-in"
+            onClick={() => setSelected(null)}
+            aria-hidden="true"
+          />
+
+          <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
+            <div className="w-screen max-w-md bg-white shadow-2xl border-l border-teal-200 flex flex-col animate-fade-in">
+              {/* Drawer Top Bar */}
+              <div className="flex items-center justify-between border-b border-teal-100 bg-teal-50/70 px-5 py-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="grid size-8 place-items-center rounded-lg bg-teal-100 text-teal-700">
+                    <MousePointerClick className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 id="slide-over-title" className="truncate text-base font-bold text-ink">
+                      {selected.title || 'Component Inspector'}
+                    </h3>
+                    <p className="text-xs text-teal-600">Click outside to dismiss</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="grid size-8 place-items-center rounded-lg text-charcoal-500 hover:bg-teal-100 hover:text-ink transition-colors"
+                  aria-label="Close inspector"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-5 scrollbar-thin">
+                <WidgetInspector widget={selected} onClose={() => setSelected(null)} />
+              </div>
+
+              {/* Drawer Bottom Bar */}
+              <div className="border-t border-teal-100 bg-teal-50/30 p-3.5 flex justify-end">
+                <Button size="sm" variant="secondary" onClick={() => setSelected(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
-      </aside>
+        </div>
+      )}
     </div>
   )
 }
