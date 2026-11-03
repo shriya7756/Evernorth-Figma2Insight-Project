@@ -117,7 +117,7 @@ function AppContent() {
               <LiveDashboardPreview
                 pageJson={previewPage}
                 sourceLabel={savedPreview?.label ?? (pipeline.result ? 'Latest run' : undefined)}
-                onViewJson={previewPage ? () => setJson({ data: previewPage, title: 'Vista page.json', filename: 'page.json' }) : undefined}
+                onViewJson={previewPage ? () => setJson({ data: previewPage, title: 'Dashboard page.json', filename: 'page.json' }) : undefined}
                 onDownload={previewPage ? () => downloadJson(previewPage, `${previewPage.slideId || 'page'}_page.json`) : undefined}
               />
             </div>

@@ -79,7 +79,7 @@ export function WorkspaceView({
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-teal-200 sm:text-lg">
               Load a design, let the classifier identify KPI cards, charts and tables, and export a validated 12×12
-              layout as Vista page.json.
+              layout as a structured Dashboard page.json.
             </p>
           </div>
           <div className="stagger mt-8 grid gap-3 sm:grid-cols-3">
@@ -216,7 +216,7 @@ export function WorkspaceView({
               <ResultPanel
                 result={pipeline.result}
                 storage={storage?.backend}
-                onViewJson={() => onViewJson(pipeline.result!.pageJson, 'Vista page.json', 'page.json')}
+                onViewJson={() => onViewJson(pipeline.result!.pageJson, 'Dashboard page.json', 'page.json')}
                 onDownload={onDownloadPage}
               />
             )}

@@ -360,6 +360,17 @@ async def upload_figma_file(file: UploadFile = File(...)):
     if not isinstance(figma_data, dict):
         raise HTTPException(status_code=422, detail="Expected a JSON object exported from Figma.")
 
+    # Detect if this is a Dashboard page.json output file (not a Figma export)
+    if "slideId" in figma_data and ("tiles" in figma_data or "widgets" in figma_data):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "This looks like a Dashboard page.json output file, not a Figma design export. "
+                "To view this file, go to the 'Saved analyses' tab and open it from there, "
+                "or use the 'Preview' tab to load and inspect it."
+            ),
+        )
+
     nodes, doc_name, dims = _extract_nodes(figma_data)
     if not nodes:
         raise HTTPException(status_code=422, detail="No design layers were found in this file.")

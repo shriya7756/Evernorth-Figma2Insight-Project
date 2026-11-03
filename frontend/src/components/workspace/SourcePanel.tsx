@@ -221,8 +221,8 @@ export function SourcePanel({
 
       {error && (
         <Alert
-          tone="error"
-          title="We couldn't load that design"
+          tone={error.includes('page.json output') ? 'warning' : 'error'}
+          title={error.includes('page.json output') ? 'Wrong file type' : "We couldn't load that design"}
           className="mt-4"
           action={
             source === 'upload' ? (

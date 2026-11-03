@@ -42,7 +42,7 @@ import { useToast } from './ui/Toast'
 const PAGE_SIZE = 20
 
 const JSON_TYPE_LABELS: Record<JsonType, { label: string; description: string }> = {
-  page_json: { label: 'Vista page.json', description: 'Final dashboard page' },
+  page_json: { label: 'Dashboard page.json', description: 'Final dashboard page' },
   grid_layout: { label: 'Grid layout', description: '12×12 tile placement' },
   clean_predictions: { label: 'Clean predictions', description: 'Classifier output after cleanup' },
   raw_predictions: { label: 'Raw predictions', description: 'Unfiltered XGBoost output' },
