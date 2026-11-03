@@ -1,7 +1,8 @@
 # 🧭 Figma2Insight — Beginner's Guide
 
-> **Live Web App**: [https://figma2insight.netlify.app](https://figma2insight.netlify.app)  
-> **Local App**: [http://localhost:5174](http://localhost:5174)
+> **Full Local App (AI Pipeline + Server)**: [http://localhost:8001](http://localhost:8001) *(Run `start.bat` or `python server.py`)*  
+> **Frontend Dev**: [http://localhost:5174](http://localhost:5174) *(Run `cd frontend && npm run dev`)*  
+> **Netlify Static Frontend**: [https://figma2insight.netlify.app](https://figma2insight.netlify.app) *(Static UI; connects to your local app or cloud backend)*
 
 ---
 
@@ -101,10 +102,11 @@ Look at the status chips at the top of the Workspace hero section:
 ## 🚀 Quick Start Checklist for Beginners
 
 ```text
-1. Open https://figma2insight.netlify.app (or http://localhost:5174)
-2. In Step 1: Click "Use this design" or drop your Figma JSON export.
-3. In Step 2: (Optional) Enter a Dashboard Title.
-4. In Step 3: Click "⚡ Run full pipeline" (takes ~5–10 seconds).
-5. Click "Open dashboard preview" to see your generated layout!
-6. Click "Download" to save your production page.json.
+1. Start the server: double-click start.bat (or run `python server.py`).
+2. Open http://localhost:8001 in your browser.
+3. In Step 1: Click "Use this design" or drop your Figma JSON export.
+4. In Step 2: (Optional) Enter a Dashboard Title.
+5. In Step 3: Click "⚡ Run full pipeline" (takes ~5–10 seconds).
+6. Click "Open dashboard preview" to see your generated layout!
+7. Click "Download" to save your production page.json.
 ```

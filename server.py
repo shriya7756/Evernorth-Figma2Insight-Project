@@ -74,11 +74,18 @@ _history_store: Optional[HistoryStore] = None
 
 
 def get_history_store() -> HistoryStore:
-    """Return the configured history store (MongoDB when MONGODB_URI is set, else local files)."""
+    """Return the configured history store (MongoDB when MONGODB_URI is reachable, else local files)."""
     global _history_store
     if _history_store is None:
         if settings.mongodb_enabled:
-            _history_store = MongoHistoryStore(db.get_database(settings))
+            try:
+                _history_store = MongoHistoryStore(db.get_database(settings))
+            except Exception as exc:
+                logger.warning(
+                    "MongoDB is configured but could not be initialized (%s). Falling back to local file storage.",
+                    exc,
+                )
+                _history_store = FileHistoryStore(HISTORY_DIR)
         else:
             _history_store = FileHistoryStore(HISTORY_DIR)
     return _history_store
@@ -88,12 +95,18 @@ def get_history_store() -> HistoryStore:
 async def lifespan(_: FastAPI):
     if settings.mongodb_enabled:
         logger.info("Saved analyses will be stored in MongoDB database '%s'.", settings.mongodb_db_name)
-        if not db.ping(settings):
-            logger.warning("MongoDB is not reachable yet; history requests will return 503 until it is.")
+        try:
+            if not db.ping(settings):
+                logger.warning("MongoDB is not reachable; history requests will use fallback or return 503.")
+        except Exception as exc:
+            logger.warning("MongoDB initial ping check failed (%s); continuing with local fallback.", exc)
     else:
         logger.info("MONGODB_URI is not set; saved analyses will be stored under outputs/history/.")
     yield
-    db.close_client()
+    try:
+        db.close_client()
+    except Exception:
+        pass
 
 
 app = FastAPI(
@@ -108,7 +121,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_origin_regex=r"^https://.*\.netlify\.app$",
     allow_credentials=False,
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

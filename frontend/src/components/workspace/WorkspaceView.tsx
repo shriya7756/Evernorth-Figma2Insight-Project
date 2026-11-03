@@ -1,10 +1,11 @@
-import React from 'react'
-import { Cpu, Database, HardDrive, RotateCw, Sparkles } from 'lucide-react'
+import React, { useState } from 'react'
+import { Cpu, Database, HardDrive, RotateCw, Settings2, Sparkles } from 'lucide-react'
 import { BackendStatus } from '../../types'
 import { PipelineState } from '../../hooks/usePipeline'
 import { cn } from '../../lib/cn'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
+import { getApiBase, setCustomApiBase } from '../../services/api'
 import { PackageDetailsForm } from './PackageDetailsForm'
 import { PipelinePanel } from './PipelinePanel'
 import { ResultPanel } from './ResultPanel'
@@ -41,6 +42,22 @@ export function WorkspaceView({
   onViewJson,
   onDownloadPage,
 }: WorkspaceViewProps) {
+  const isRemoteHost = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+  const [showApiConfig, setShowApiConfig] = useState(false)
+  const [customApiUrl, setCustomApiUrl] = useState(() => getApiBase())
+
+  const handleSaveApiUrl = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCustomApiBase(customApiUrl)
+    onRetryConnection()
+  }
+
+  const handleResetApiUrl = () => {
+    setCustomApiBase(null)
+    setCustomApiUrl('/api')
+    onRetryConnection()
+  }
+
   const storage = status?.storage
   const storageLabel = !storage
     ? '—'
@@ -98,15 +115,63 @@ export function WorkspaceView({
         {connectionError && (
           <Alert
             tone="error"
-            title="Can't reach the Figma2Insight API"
+            title={isRemoteHost ? "Connecting to Render Cloud Backend" : "Can't reach the Figma2Insight API"}
             className="mb-6 shadow-card animate-fade-up"
             action={
-              <Button variant="secondary" size="sm" icon={<RotateCw className="size-4" />} onClick={onRetryConnection} loading={isConnecting}>
-                Retry
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Settings2 className="size-4" />}
+                  onClick={() => setShowApiConfig(!showApiConfig)}
+                >
+                  {showApiConfig ? 'Hide API URL' : 'Configure API URL'}
+                </Button>
+                <Button variant="primary" size="sm" icon={<RotateCw className="size-4" />} onClick={onRetryConnection} loading={isConnecting}>
+                  {isConnecting ? 'Waking up backend…' : 'Retry Connection'}
+                </Button>
+              </div>
             }
           >
-            {connectionError} Start it with <code className="rounded bg-white/70 px-1 font-mono text-xs">python server.py</code>.
+            {isRemoteHost ? (
+              <div className="space-y-2 text-sm text-rose-800">
+                <p>
+                  <strong>Render Free Tier Cold Start:</strong> Your backend is hosted at <a href="https://evernorth-figma2insight-project.onrender.com" target="_blank" rel="noreferrer" className="underline font-mono text-xs">https://evernorth-figma2insight-project.onrender.com</a>. Free instances sleep after 15 minutes of inactivity and take <strong>30–50 seconds to wake up</strong> on the first visit.
+                </p>
+                <p>
+                  If you just opened the website, please wait a moment and click <strong>"Retry Connection"</strong> above.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p>{connectionError}</p>
+                <p className="mt-1">
+                  Start the backend with <code className="rounded bg-rose-100 px-1 font-mono text-xs text-rose-900">python server.py</code>.
+                </p>
+              </div>
+            )}
+
+            {showApiConfig && (
+              <form onSubmit={handleSaveApiUrl} className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-white/60 p-2.5 border border-rose-200">
+                <label htmlFor="api-url-input" className="text-xs font-semibold text-charcoal-700">
+                  Backend API URL:
+                </label>
+                <input
+                  id="api-url-input"
+                  type="text"
+                  value={customApiUrl}
+                  onChange={(e) => setCustomApiUrl(e.target.value)}
+                  placeholder="e.g. https://my-backend.onrender.com/api"
+                  className="flex-1 min-w-[240px] rounded-md border border-charcoal-300 bg-white px-2.5 py-1 text-xs text-charcoal-900 focus:border-teal-500 focus:outline-none"
+                />
+                <Button type="submit" size="sm" variant="primary">
+                  Save & Connect
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={handleResetApiUrl}>
+                  Reset
+                </Button>
+              </form>
+            )}
           </Alert>
         )}
 

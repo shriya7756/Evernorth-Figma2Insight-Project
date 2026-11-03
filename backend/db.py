@@ -10,6 +10,14 @@ import logging
 import threading
 from typing import Optional
 
+try:
+    import dns.resolver
+    _res = dns.resolver.get_default_resolver()
+    _res.timeout = 2.0
+    _res.lifetime = 3.0
+except Exception:
+    pass
+
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
@@ -50,9 +58,9 @@ def get_database(settings: Optional[Settings] = None) -> Database:
 def ping(settings: Optional[Settings] = None) -> bool:
     """Return True when the configured MongoDB deployment answers a ping."""
     try:
-        get_client(settings).admin.command("ping")
+        get_client(settings).admin.command("ping", maxTimeMS=1500)
         return True
-    except (PyMongoError, RuntimeError) as exc:
+    except Exception as exc:
         logger.warning("MongoDB ping failed: %s", type(exc).__name__)
         return False
 

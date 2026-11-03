@@ -9,7 +9,26 @@ import {
 import { toPackagePayload } from '../lib/validation'
 import type { PackageDetails } from '../types'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api'
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const custom = window.localStorage.getItem('f2i_api_base')
+    if (custom) return custom.trim().replace(/\/+$/, '')
+  }
+  const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined
+  if (envBase) return envBase.trim().replace(/\/+$/, '')
+  return '/api'
+}
+
+export function setCustomApiBase(url: string | null) {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      window.localStorage.setItem('f2i_api_base', url.trim().replace(/\/+$/, ''))
+    } else {
+      window.localStorage.removeItem('f2i_api_base')
+    }
+  }
+}
+
 const DEFAULT_TIMEOUT_MS = 30_000
 const PIPELINE_TIMEOUT_MS = 180_000
 
@@ -52,9 +71,13 @@ async function request<T>(
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
 
+  const base = getApiBase()
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const targetUrl = `${base}${cleanPath}`
+
   let res: Response
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal })
+    res = await fetch(targetUrl, { ...options, signal: controller.signal })
   } catch (err) {
     const timedOut = err instanceof DOMException && err.name === 'AbortError'
     throw new ApiError(
@@ -65,6 +88,14 @@ async function request<T>(
     )
   } finally {
     window.clearTimeout(timer)
+  }
+
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('text/html')) {
+    throw new ApiError(
+      'The API returned an HTML page instead of JSON. Netlify only serves the static frontend UI. To run Figma2Insight, start "python server.py" and use http://localhost:8001 or configure a backend API URL.',
+      502,
+    )
   }
 
   if (!res.ok) {
@@ -89,7 +120,7 @@ function postJson<T>(path: string, body: unknown, timeoutMs = PIPELINE_TIMEOUT_M
 // ---------------------------------------------------------------------------
 
 export function fetchBackendStatus() {
-  return request<BackendStatus>('/status', { timeoutMs: 8_000 })
+  return request<BackendStatus>('/status', { timeoutMs: 60_000 })
 }
 
 export async function loadPluginData(): Promise<LoadedDesign> {
@@ -135,7 +166,7 @@ export function runGenerateLayout(params: StageParams & { packageDetails?: Packa
 }
 
 export function getDownloadPageUrl(): string {
-  return `${API_BASE}/download/page.json`
+  return `${getApiBase()}/download/page.json`
 }
 
 // ---------------------------------------------------------------------------
@@ -164,5 +195,5 @@ export function deleteHistoryRun(runId: string) {
 }
 
 export function getHistoryDownloadUrl(runId: string, jsonType: JsonType): string {
-  return `${API_BASE}/history/${encodeURIComponent(runId)}/download/${jsonType}`
+  return `${getApiBase()}/history/${encodeURIComponent(runId)}/download/${jsonType}`
 }

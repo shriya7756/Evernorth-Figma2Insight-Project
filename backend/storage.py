@@ -16,6 +16,7 @@ import logging
 import re
 import shutil
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Tuple
@@ -99,6 +100,8 @@ class MongoHistoryStore:
         self._outputs = db["run_outputs"]
         self._schema_ready = False
         self._schema_lock = threading.Lock()
+        self._last_health: Optional[bool] = None
+        self._last_health_time: float = 0.0
 
     def _ensure_schema(self) -> None:
         """Create collections with validators and indexes once (idempotent)."""
@@ -134,11 +137,16 @@ class MongoHistoryStore:
             self._schema_ready = True
 
     def health(self) -> bool:
+        now = time.time()
+        if self._last_health is not None and (now - self._last_health_time < 10.0):
+            return self._last_health
         try:
-            self._db.command("ping")
-            return True
-        except PyMongoError:
-            return False
+            self._db.command("ping", maxTimeMS=1500)
+            self._last_health = True
+        except Exception:
+            self._last_health = False
+        self._last_health_time = now
+        return self._last_health
 
     def list_runs(self, limit: int, skip: int, query: Optional[str]) -> Tuple[List[Dict[str, Any]], int]:
         self._ensure_schema()
