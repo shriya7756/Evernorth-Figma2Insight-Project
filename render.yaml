@@ -8,7 +8,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.12
       - key: MONGODB_URI
-        value: mongodb+srv://shriya-f2i-v2:shriyaF2Ipa@cluster0.xjcesga.mongodb.net/
+        sync: false
       - key: MONGODB_DB_NAME
         value: figma2insight
       - key: CORS_ORIGINS
