@@ -51,7 +51,7 @@
             "children": [
               {
                 "id": "141:2069",
-                "name": "PLANNING DATA IS SYNTHETIC \u00b7 NO LIVE RESOURCE CONNECTION UPDATED 08:56 / NEXT MODEL RUN 10:00",
+                "name": "PLANNING DATA IS SYNTHETIC · NO LIVE RESOURCE CONNECTION UPDATED 08:56 / NEXT MODEL RUN 10:00",
                 "type": "TEXT",
                 "visible": true,
                 "absoluteBoundingBox": {
@@ -87,7 +87,7 @@
                   }
                 ],
                 "strokes": [],
-                "characters": "PLANNING DATA IS SYNTHETIC \u00b7 NO LIVE RESOURCE CONNECTION                 UPDATED 08:56 / NEXT MODEL RUN 10:00",
+                "characters": "PLANNING DATA IS SYNTHETIC · NO LIVE RESOURCE CONNECTION                 UPDATED 08:56 / NEXT MODEL RUN 10:00",
                 "fontSize": 9
               },
               {
@@ -323,7 +323,7 @@
                           },
                           {
                             "id": "141:2076",
-                            "name": "Packing \u00b7 Friday extension / Awaiting owner",
+                            "name": "Packing · Friday extension / Awaiting owner",
                             "type": "TEXT",
                             "visible": true,
                             "absoluteBoundingBox": {
@@ -359,7 +359,7 @@
                               }
                             ],
                             "strokes": [],
-                            "characters": "Packing \u00b7 Friday extension / Awaiting owner",
+                            "characters": "Packing · Friday extension / Awaiting owner",
                             "fontSize": 10
                           },
                           {
@@ -706,7 +706,7 @@
                           },
                           {
                             "id": "141:2086",
-                            "name": "Assembly \u00b7 Cover for 2 absent operators",
+                            "name": "Assembly · Cover for 2 absent operators",
                             "type": "TEXT",
                             "visible": true,
                             "absoluteBoundingBox": {
@@ -742,7 +742,7 @@
                               }
                             ],
                             "strokes": [],
-                            "characters": "Assembly \u00b7 Cover for 2 absent operators",
+                            "characters": "Assembly · Cover for 2 absent operators",
                             "fontSize": 10
                           },
                           {
@@ -1089,7 +1089,7 @@
                           },
                           {
                             "id": "141:2096",
-                            "name": "Test bay \u00b7 Extra 12 h / Duplicate reservation",
+                            "name": "Test bay · Extra 12 h / Duplicate reservation",
                             "type": "TEXT",
                             "visible": true,
                             "absoluteBoundingBox": {
@@ -1125,7 +1125,7 @@
                               }
                             ],
                             "strokes": [],
-                            "characters": "Test bay \u00b7 Extra 12 h / Duplicate reservation",
+                            "characters": "Test bay · Extra 12 h / Duplicate reservation",
                             "fontSize": 10
                           },
                           {
@@ -1323,7 +1323,7 @@
                   },
                   {
                     "id": "141:2102",
-                    "name": "Priority cases \u00b7 3 of 24 open requests",
+                    "name": "Priority cases · 3 of 24 open requests",
                     "type": "TEXT",
                     "visible": true,
                     "absoluteBoundingBox": {
@@ -1359,7 +1359,7 @@
                       }
                     ],
                     "strokes": [],
-                    "characters": "Priority cases \u00b7 3 of 24 open requests",
+                    "characters": "Priority cases · 3 of 24 open requests",
                     "fontSize": 11
                   },
                   {
@@ -2782,7 +2782,7 @@
                   },
                   {
                     "id": "141:2141",
-                    "name": "Booked / held / free \u00b7 Indexed totals",
+                    "name": "Booked / held / free · Indexed totals",
                     "type": "TEXT",
                     "visible": true,
                     "absoluteBoundingBox": {
@@ -2818,7 +2818,7 @@
                       }
                     ],
                     "strokes": [],
-                    "characters": "Booked / held / free \u00b7 Indexed totals",
+                    "characters": "Booked / held / free · Indexed totals",
                     "fontSize": 11
                   },
                   {
@@ -3111,7 +3111,7 @@
                       },
                       {
                         "id": "141:2149",
-                        "name": "Comfort band: 65\u201385%",
+                        "name": "Comfort band: 65–85%",
                         "type": "TEXT",
                         "visible": true,
                         "absoluteBoundingBox": {
@@ -3147,7 +3147,7 @@
                           }
                         ],
                         "strokes": [],
-                        "characters": "Comfort band: 65\u201385%",
+                        "characters": "Comfort band: 65–85%",
                         "fontSize": 11
                       },
                       {
@@ -4365,7 +4365,7 @@
                   },
                   {
                     "id": "141:2181",
-                    "name": "Effective utilization \u00b7 Excludes leave",
+                    "name": "Effective utilization · Excludes leave",
                     "type": "TEXT",
                     "visible": true,
                     "absoluteBoundingBox": {
@@ -4401,7 +4401,7 @@
                       }
                     ],
                     "strokes": [],
-                    "characters": "Effective utilization \u00b7 Excludes leave",
+                    "characters": "Effective utilization · Excludes leave",
                     "fontSize": 11
                   },
                   {
@@ -9797,7 +9797,7 @@
                   },
                   {
                     "id": "141:2315",
-                    "name": "Booked capacity (%) \u00b7 Grey cells are provisional allocations",
+                    "name": "Booked capacity (%) · Grey cells are provisional allocations",
                     "type": "TEXT",
                     "visible": true,
                     "absoluteBoundingBox": {
@@ -9833,7 +9833,7 @@
                       }
                     ],
                     "strokes": [],
-                    "characters": "Booked capacity (%) \u00b7 Grey cells are provisional allocations",
+                    "characters": "Booked capacity (%) · Grey cells are provisional allocations",
                     "fontSize": 11
                   },
                   {
@@ -12505,7 +12505,7 @@
                     "children": [
                       {
                         "id": "141:2383",
-                        "name": "All teams \u2193",
+                        "name": "All teams ↓",
                         "type": "TEXT",
                         "visible": true,
                         "absoluteBoundingBox": {
@@ -12541,7 +12541,7 @@
                           }
                         ],
                         "strokes": [],
-                        "characters": "All teams \u2193",
+                        "characters": "All teams ↓",
                         "fontSize": 11
                       }
                     ]
@@ -12601,7 +12601,7 @@
                     "children": [
                       {
                         "id": "141:2385",
-                        "name": "Annex \u00d7",
+                        "name": "Annex ×",
                         "type": "TEXT",
                         "visible": true,
                         "absoluteBoundingBox": {
@@ -12637,7 +12637,7 @@
                           }
                         ],
                         "strokes": [],
-                        "characters": "Annex \u00d7",
+                        "characters": "Annex ×",
                         "fontSize": 11
                       }
                     ]
@@ -12697,7 +12697,7 @@
                     "children": [
                       {
                         "id": "141:2387",
-                        "name": "Week 18 \u2193",
+                        "name": "Week 18 ↓",
                         "type": "TEXT",
                         "visible": true,
                         "absoluteBoundingBox": {
@@ -12733,7 +12733,7 @@
                           }
                         ],
                         "strokes": [],
-                        "characters": "Week 18 \u2193",
+                        "characters": "Week 18 ↓",
                         "fontSize": 11
                       }
                     ]
@@ -13321,7 +13321,7 @@
               },
               {
                 "id": "141:2403",
-                "name": "Cinder Annex \u00b7 Week 18 \u00b7 46 resources in the planning pool",
+                "name": "Cinder Annex · Week 18 · 46 resources in the planning pool",
                 "type": "TEXT",
                 "visible": true,
                 "absoluteBoundingBox": {
@@ -13357,7 +13357,7 @@
                   }
                 ],
                 "strokes": [],
-                "characters": "Cinder Annex \u00b7 Week 18 \u00b7 46 resources in the planning pool",
+                "characters": "Cinder Annex · Week 18 · 46 resources in the planning pool",
                 "fontSize": 11
               },
               {
