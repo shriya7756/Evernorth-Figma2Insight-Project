@@ -1,6 +1,6 @@
 # Widget Output Comparison
 
-## Final Vista page.json Widgets (After Fixes)
+## Final Dashboard page.json Widgets (After Fixes)
 
 ### 1. Total Patients (KPI_CARD)
 ```json

@@ -1,4 +1,4 @@
-# Figma-to-Vista Layout Fix Summary
+# Figma-to-Dashboard Layout Fix Summary
 
 ## Problem Diagnosis
 
@@ -50,12 +50,12 @@ The original Figma layout was being lost because:
 ### 4. `frontend/src/types.ts`
 **Changes:**
 - Added `AbsolutePosition` interface for x, y, width, height
-- Added `position` field to `VistaWidget` interface
-- Added `semanticLabel` field to `VistaWidget` interface
+- Added `position` field to `DashboardWidget` interface
+- Added `semanticLabel` field to `DashboardWidget` interface
 
 **Key code changes:**
 - Lines 8-12: Added AbsolutePosition interface
-- Lines 46-70: Updated VistaWidget interface
+- Lines 46-70: Updated DashboardWidget interface
 
 ### 5. `frontend/src/components/AbsoluteLayoutViewer.tsx` (new file)
 **Purpose:**
@@ -98,8 +98,8 @@ All 9 components match Figma geometry exactly:
 2. **Candidate Generation**: Width=162.0, Height=99.0, Text=['2.414', 'Total Doctor']
 3. **XGBoost Prediction**: Type=KPI_CARD, Confidence=99.1%
 4. **Grid Layout**: Grid={colOffset:2, colSpan:2, rowOffset:1, rowSpan:2}, Absolute={x:286.0, y:131.0, w:162, h:99}
-5. **Vista Page**: ComponentType=KPI_CARD, SemanticLabel='Total Doctor', Position={x:286.0, y:131.0, w:162, h:99}
-6. **Verification**: Figma relative position matches Vista position exactly
+5. **Dashboard Page**: ComponentType=KPI_CARD, SemanticLabel='Total Doctor', Position={x:286.0, y:131.0, w:162, h:99}
+6. **Verification**: Figma relative position matches Dashboard position exactly
 
 ### JSON Schema Verification
 All widgets now have:

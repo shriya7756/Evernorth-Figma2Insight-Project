@@ -186,5 +186,5 @@ const componentType = widget?.componentType || widgetType
 ## Generated Output
 
 - **Grid Layout**: 8 components in 12×12 grid (down from 10)
-- **Vista page.json**: 8 widgets, 8 tiles
+- **Dashboard page.json**: 8 widgets, 8 tiles
 - **Needs Review**: 3 widgets (2 charts with missing data, 1 table with low confidence)

@@ -2,7 +2,7 @@
 
 Figma2Insight turns Figma dashboard designs into structured, validated dashboard layouts. It finds component
 candidates in an exported design, classifies them with an XGBoost model (KPI cards, charts, tables and more), maps
-them onto a 12 × 12 grid and generates a Vista `page.json`. Every generated layout is saved as an analysis you can
+them onto a 12 × 12 grid and generates a structured dashboard `page.json`. Every generated layout is saved as an analysis you can
 revisit, preview, download or delete.
 
 ## Features
@@ -16,7 +16,7 @@ revisit, preview, download or delete.
   with a component inspector and a touch-friendly list on small screens.
 - **Saved analyses (MongoDB)** – searchable, paginated history of runs with stats, package details and all JSON
   outputs; open any run in the preview, view/download outputs, or delete it.
-- **Guide** – the grid rules, Figma → Vista widget mapping and validation checks.
+- **Guide** – the grid rules, Figma → Dashboard widget mapping and validation checks.
 
 ## Technology
 
@@ -194,7 +194,7 @@ Interactive docs are available at `http://127.0.0.1:8001/docs` while the API is 
 
 ```text
 Figma JSON → Candidate generation → Feature extraction → XGBoost classification
-           → Prediction cleaning → 12×12 grid layout → Vista page.json → Preview / saved analysis
+           → Prediction cleaning → 12×12 grid layout → Dashboard page.json → Preview / saved analysis
 ```
 
 Training and research scripts (feature extraction, labelling, `src/model/train_*.py`, `src/model/predict.py`) are
