@@ -1,6 +1,6 @@
 import React from 'react'
 import { ArrowLeft, Clock, Download, ExternalLink, Eye, Layers } from 'lucide-react'
-import { VistaPageJson } from '../types'
+import { DashboardPageJson } from '../types'
 import { routeHref } from '../hooks/useHashRoute'
 import { AbsoluteLayoutViewer } from './AbsoluteLayoutViewer'
 import { Badge } from './ui/Badge'
@@ -9,7 +9,7 @@ import { EmptyState } from './ui/EmptyState'
 import { Card } from './ui/Card'
 
 interface LiveDashboardPreviewProps {
-  pageJson: VistaPageJson | null
+  pageJson: DashboardPageJson | null
   sourceLabel?: string
   onViewJson?: () => void
   onDownload?: () => void

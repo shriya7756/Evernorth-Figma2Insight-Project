@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { HistoryEntry, HistoryRunDetails, JsonType, StorageBackend, VistaPageJson } from '../types'
+import { DashboardPageJson, HistoryEntry, HistoryRunDetails, JsonType, StorageBackend } from '../types'
 import {
   ApiError,
   deleteHistoryRun,
@@ -50,7 +50,7 @@ const JSON_TYPE_LABELS: Record<JsonType, { label: string; description: string }>
 }
 
 interface HistoryViewProps {
-  onOpenPreview: (pageJson: VistaPageJson, label: string) => void
+  onOpenPreview: (pageJson: DashboardPageJson, label: string) => void
 }
 
 function errorText(err: unknown) {
@@ -173,7 +173,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onOpenPreview }) => {
   const openPreview = async (run: HistoryRunDetails) => {
     setBusyAction('preview')
     try {
-      const page = (await fetchHistoryJson(run.runId, 'page_json')) as VistaPageJson
+      const page = (await fetchHistoryJson(run.runId, 'page_json')) as DashboardPageJson
       setSelected(null)
       onOpenPreview(page, `Saved · ${formatDateTime(run.timestamp)}`)
     } catch (err) {

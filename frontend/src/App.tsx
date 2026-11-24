@@ -11,7 +11,7 @@ import { fetchBackendStatus, getDownloadPageUrl } from './services/api'
 import { Route, useHashRoute } from './hooks/useHashRoute'
 import { usePipeline } from './hooks/usePipeline'
 import { downloadJson, downloadUrl } from './lib/download'
-import { BackendStatus, VistaPageJson } from './types'
+import { BackendStatus, DashboardPageJson } from './types'
 
 const PAGE_META: Record<Route, { title: string; heading?: string; description?: string }> = {
   workspace: { title: 'Workspace' },
@@ -51,7 +51,7 @@ function AppContent() {
   const pipeline = usePipeline()
 
   // A saved analysis opened from history takes over the preview until a new layout is generated.
-  const [savedPreview, setSavedPreview] = useState<{ page: VistaPageJson; label: string } | null>(null)
+  const [savedPreview, setSavedPreview] = useState<{ page: DashboardPageJson; label: string } | null>(null)
   const [json, setJson] = useState<{ data: unknown; title: string; filename: string } | null>(null)
   const mainRef = useRef<HTMLElement>(null)
   const firstRender = useRef(true)

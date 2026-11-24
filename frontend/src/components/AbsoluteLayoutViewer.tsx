@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { MousePointerClick, X } from 'lucide-react'
-import { VistaTile, VistaWidget } from '../types'
+import { DashboardTile, DashboardWidget } from '../types'
 import { cn } from '../lib/cn'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 
 interface AbsoluteLayoutViewerProps {
-  tiles: VistaTile[]
-  widgets: VistaWidget[]
+  tiles: DashboardTile[]
+  widgets: DashboardWidget[]
   dashboardSize: { width: number; height: number }
 }
 
@@ -22,7 +22,7 @@ const styleFor = (type: string) => TYPE_STYLES[type] ?? TYPE_STYLES.OTHER
 
 const isNegativeTrend = (trend: string) => /^[−-]|↓|↘/.test(trend.trim())
 
-function WidgetInspector({ widget, onClose }: { widget: VistaWidget; onClose: () => void }) {
+function WidgetInspector({ widget, onClose }: { widget: DashboardWidget; onClose: () => void }) {
   const rows: [string, React.ReactNode][] = [
     ['Component type', styleFor(widget.componentType).label],
     ['Semantic label', widget.semanticLabel || '—'],
@@ -99,7 +99,7 @@ function WidgetInspector({ widget, onClose }: { widget: VistaWidget; onClose: ()
 
 export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tiles, widgets, dashboardSize }) => {
   const widgetMap = useMemo(() => {
-    const map = new Map<string, VistaWidget>()
+    const map = new Map<string, DashboardWidget>()
     widgets.forEach((w) => {
       map.set(w.id, w)
       if (w.widgetId) map.set(w.widgetId, w)
@@ -109,7 +109,7 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
-  const [selected, setSelected] = useState<VistaWidget | null>(null)
+  const [selected, setSelected] = useState<DashboardWidget | null>(null)
 
   // Non-overlapping 12-column grid layout resolver
   // Ensures every single tile occupies its own dedicated space with zero overlapping.
@@ -194,8 +194,8 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
     }
 
     const placed: Array<{
-      tile: VistaTile
-      widget?: VistaWidget
+      tile: DashboardTile
+      widget?: DashboardWidget
       type: string
       colOffset: number
       rowOffset: number

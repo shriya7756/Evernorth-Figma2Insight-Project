@@ -23,7 +23,7 @@ export interface PredictedComponent extends CandidateComponent {
   confidence?: number
 }
 
-export interface VistaTile {
+export interface DashboardTile {
   tileId: string
   id?: string
   contentId: string
@@ -37,6 +37,8 @@ export interface VistaTile {
   grid: GridPosition
 }
 
+export type VistaTile = DashboardTile
+
 export interface AbsolutePosition {
   x: number
   y: number
@@ -44,7 +46,7 @@ export interface AbsolutePosition {
   height: number
 }
 
-export interface VistaWidget {
+export interface DashboardWidget {
   id: string
   widgetId: string
   type: string
@@ -74,7 +76,9 @@ export interface VistaWidget {
   }
 }
 
-export interface VistaPageJson {
+export type VistaWidget = DashboardWidget
+
+export interface DashboardPageJson {
   contentId: string
   slideId: string
   pageId: string
@@ -94,8 +98,8 @@ export interface VistaPageJson {
     sourceWidth: number
     sourceHeight: number
   }
-  tiles: VistaTile[]
-  widgets: VistaWidget[]
+  tiles: DashboardTile[]
+  widgets: DashboardWidget[]
   backgroundPaths?: unknown[]
   validation: {
     componentCount: number
@@ -105,6 +109,8 @@ export interface VistaPageJson {
     validationErrors?: string[]
   }
 }
+
+export type VistaPageJson = DashboardPageJson
 
 export interface PackageDetails {
   subjectArea: string
@@ -162,7 +168,7 @@ export interface PipelineResult {
       }
     }>
   }
-  pageJson: VistaPageJson
+  pageJson: DashboardPageJson
   stats: {
     widgets: number
     tiles: number
@@ -203,7 +209,7 @@ export interface LayoutResult {
   runId: string
   saved: boolean
   gridLayout: PipelineResult['gridLayout']
-  pageJson: VistaPageJson
+  pageJson: DashboardPageJson
   stats: { widgets: number; tiles: number; needAttention: number }
 }
 
