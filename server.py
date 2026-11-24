@@ -1,6 +1,6 @@
 """
 Figma2Insight API server.
-Connects the frontend to the XGBoost ML pipeline and Vista page.json generation,
+Connects the frontend to the XGBoost ML pipeline and Dashboard page.json generation,
 and persists saved analyses (run history) in MongoDB when it is configured.
 """
 
@@ -48,6 +48,7 @@ from src.pipeline import (  # noqa: E402
     extract_nodes_from_figma_payload,
     run_candidate_generation,
     run_classification,
+    run_dashboard_page_generation,
     run_grid_layout,
     run_prediction_cleaning,
     run_vista_page_generation,
@@ -68,7 +69,8 @@ CANDIDATES_FILE = ROOT / "dataset" / "new_candidates" / "new_dashboard_candidate
 RAW_PREDICTIONS_FILE = ROOT / "dataset" / "new_candidates" / "new_dashboard_predictions.json"
 CLEAN_PREDICTIONS_FILE = ROOT / "dataset" / "new_candidates" / "new_dashboard_clean_predictions.json"
 GRID_LAYOUT_FILE = ROOT / "outputs" / "dashboard_configs" / "new_dashboard" / "grid_layout.json"
-PAGE_FILE = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
+PAGE_FILE = ROOT / "outputs" / "dashboard_pages" / "new_dashboard" / "page.json"
+LEGACY_PAGE_FILE = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
 
 _history_store: Optional[HistoryStore] = None
 
@@ -409,7 +411,7 @@ def load_plugin_data():
 def generate_dashboard(request: GenerateRequest):
     """
     Main generation endpoint: runs candidate generation, XGBoost inference,
-    grid mapping and Vista page.json generation in one call.
+    grid mapping and Dashboard page.json generation in one call.
     """
     figma_data = request.figmaJson or _load_active_figma(
         "No Figma JSON provided and no active design found.", status_code=400
@@ -523,7 +525,7 @@ def classify_components(request: GenerateRequest):
 
 @app.post("/api/generate-layout")
 def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_history_store)):
-    """Generate the 12x12 grid layout and Vista page.json, then save the run as an analysis."""
+    """Generate the 12x12 grid layout and Dashboard page.json, then save the run as an analysis."""
     if not CLEAN_PREDICTIONS_FILE.exists():
         raise HTTPException(status_code=409, detail="Run the Classify stage first.")
 
@@ -534,7 +536,7 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
     try:
         grid_layout = run_grid_layout(figma_data, predictions)
         source_nodes, _, _ = extract_nodes_from_figma_payload(figma_data)
-        vista_page = run_vista_page_generation(
+        dashboard_page = run_dashboard_page_generation(
             grid_layout,
             predictions,
             _package_meta(request),
@@ -545,19 +547,20 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
 
     # Keep the standard locations up to date for the CLI scripts and standalone preview.
     _write_json(GRID_LAYOUT_FILE, grid_layout)
-    _write_json(PAGE_FILE, vista_page)
+    _write_json(PAGE_FILE, dashboard_page)
+    _write_json(LEGACY_PAGE_FILE, dashboard_page)
 
     run_id = request.runId or uuid.uuid4().hex[:8]
     raw_predictions = _read_json(RAW_PREDICTIONS_FILE) if RAW_PREDICTIONS_FILE.exists() else None
 
     record = RunRecord(
         runId=run_id,
-        designName=vista_page["title"],
+        designName=dashboard_page["title"],
         createdAt=datetime.now(timezone.utc),
         componentCount=len(predictions),
-        widgetCount=len(vista_page["widgets"]),
-        tileCount=len(vista_page["tiles"]),
-        needAttention=vista_page["validation"]["reviewRequired"],
+        widgetCount=len(dashboard_page["widgets"]),
+        tileCount=len(dashboard_page["tiles"]),
+        needAttention=dashboard_page["validation"]["reviewRequired"],
         packageDetails=request.packageDetails,
     )
 
@@ -568,7 +571,7 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
             "raw_predictions": raw_predictions,
             "clean_predictions": pred_data,
             "grid_layout": grid_layout,
-            "page_json": vista_page,
+            "page_json": dashboard_page,
         })
     except (StorageUnavailableError, OutputTooLargeError) as exc:
         # The generated dashboard is still returned; the client is told it wasn't saved.
@@ -581,11 +584,11 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
         "runId": run_id,
         "saved": saved,
         "gridLayout": grid_layout,
-        "pageJson": vista_page,
+        "pageJson": dashboard_page,
         "stats": {
-            "widgets": len(vista_page["widgets"]),
-            "tiles": len(vista_page["tiles"]),
-            "needAttention": vista_page["validation"]["reviewRequired"]
+            "widgets": len(dashboard_page["widgets"]),
+            "tiles": len(dashboard_page["tiles"]),
+            "needAttention": dashboard_page["validation"]["reviewRequired"]
         }
     }
 
@@ -593,9 +596,10 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
 @app.get("/api/download/page.json")
 def download_page_json():
     """Download the generated Dashboard page.json file."""
-    if not PAGE_FILE.exists():
+    target_file = PAGE_FILE if PAGE_FILE.exists() else LEGACY_PAGE_FILE
+    if not target_file.exists():
         raise HTTPException(status_code=404, detail="No generated page.json found. Run generation first.")
-    return FileResponse(path=str(PAGE_FILE), filename="page.json", media_type="application/json")
+    return FileResponse(path=str(target_file), filename="page.json", media_type="application/json")
 
 
 @app.get("/api/download/predictions.json")

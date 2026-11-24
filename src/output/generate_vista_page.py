@@ -19,6 +19,11 @@ PREDICTIONS_FILE = (
 )
 
 OUTPUT_FILE = (
+    ROOT / "outputs" / "dashboard_pages"
+    / "new_dashboard" / "page.json"
+)
+
+LEGACY_OUTPUT_FILE = (
     ROOT / "outputs" / "vista_pages"
     / "new_dashboard" / "page.json"
 )
@@ -180,10 +185,10 @@ def main():
         },
     }
 
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    with OUTPUT_FILE.open("w", encoding="utf-8") as f:
-        json.dump(page, f, indent=2, ensure_ascii=False)
+    for target_path in (OUTPUT_FILE, LEGACY_OUTPUT_FILE):
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with target_path.open("w", encoding="utf-8") as f:
+            json.dump(page, f, indent=2, ensure_ascii=False)
 
     # Validate the written file and basic structural requirements.
     with OUTPUT_FILE.open(encoding="utf-8") as f:

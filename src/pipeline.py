@@ -6,7 +6,7 @@ Integrates:
 3. XGBoost Model Prediction (models/xgboost_model.json & models/label_encoder.pkl)
 4. Prediction Cleaning (src/output/clean_predictions.py)
 5. 12x12 Grid Layout Generation (src/output/generate_grid_layout.py)
-6. Vista Page Generation (compliant with Vista POC student guide)
+6. Dashboard Page Generation (compliant with 12x12 grid specifications)
 """
 
 import json
@@ -701,13 +701,13 @@ def extract_chart_data(
 
 
 
-def make_vista_widget(
+def make_dashboard_widget(
     component: Dict[str, Any],
     prediction: Dict[str, Any],
     source_nodes: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
-    Construct a Vista widget with KPI labels, main values,
+    Construct a dashboard widget with KPI labels, main values,
     supporting descriptions, trends, and chart/table configuration.
     """
     ctype = component["predicted_type"]
@@ -747,27 +747,27 @@ def make_vista_widget(
     component=component,
     )
 
-    # Determine Vista widget type.
+    # Determine dashboard widget type.
     if ctype == "CHART":
         if any(word in name_lower for word in ("donut", "doughnut", "pie")):
-            vista_type = "doughnut2d"
+            widget_type = "doughnut2d"
         elif "bar" in name_lower or "horizontal" in name_lower:
-            vista_type = "bar2d"
+            widget_type = "bar2d"
         else:
-            vista_type = "column2d"
+            widget_type = "column2d"
     elif ctype == "KPI_CARD":
-        vista_type = "column2d"
+        widget_type = "column2d"
     elif ctype == "TABLE":
-        vista_type = "table"
+        widget_type = "table"
     elif ctype == "COMMENT" or "insight" in name_lower:
-        vista_type = "comment"
+        widget_type = "comment"
     else:
-        vista_type = "column2d"
+        widget_type = "column2d"
 
     widget = {
         "id": widget_uuid,
         "widgetId": widget_uuid,
-        "type": vista_type,
+        "type": widget_type,
         "componentType": ctype,
         "title": title,
         "semanticLabel": semantic_label,
@@ -970,13 +970,17 @@ def make_vista_widget(
     return widget
 
 
-def run_vista_page_generation(
+# Backward-compatible alias
+make_vista_widget = make_dashboard_widget
+
+
+def run_dashboard_page_generation(
     grid_data: Dict[str, Any],
     predictions: List[Dict[str, Any]],
     package_metadata: Optional[Dict[str, str]] = None,
     source_nodes: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Stage 5: Generate Vista page.json adhering strictly to student guide specifications."""
+    """Stage 5: Generate Dashboard page.json adhering strictly to 12x12 grid specifications."""
     meta = package_metadata or {}
     subject_area = meta.get("subjectArea", "sales")
     topic = meta.get("topic", "analytics")
@@ -1003,7 +1007,7 @@ def run_vista_page_generation(
     for comp in components:
         cid = str(comp["candidate_id"])
         pred = pred_map.get(cid, {})
-        widget = make_vista_widget(
+        widget = make_dashboard_widget(
             comp,
             pred,
             source_nodes=source_nodes or [],
@@ -1080,6 +1084,10 @@ def run_vista_page_generation(
     return page
 
 
+# Backward-compatible alias
+run_vista_page_generation = run_dashboard_page_generation
+
+
 def execute_full_pipeline(
     figma_data: Dict[str, Any],
     package_metadata: Optional[Dict[str, str]] = None,
@@ -1087,7 +1095,7 @@ def execute_full_pipeline(
 ) -> Dict[str, Any]:
     """
     Run full end-to-end pipeline:
-    Figma JSON -> Candidates -> XGBoost Predict -> Clean -> Grid -> Vista page.json
+    Figma JSON -> Candidates -> XGBoost Predict -> Clean -> Grid -> Dashboard page.json
     """
     start_time = time.time()
 
@@ -1108,8 +1116,8 @@ def execute_full_pipeline(
     # Step 5: Grid Layout
     grid_layout = run_grid_layout(figma_data, clean_predictions)
 
-    # Step 6: Vista Page
-    vista_page = run_vista_page_generation(
+    # Step 6: Dashboard Page
+    dashboard_page = run_dashboard_page_generation(
         grid_layout,
         clean_predictions,
         package_metadata,
@@ -1149,11 +1157,13 @@ def execute_full_pipeline(
             with open(grid_file, "w", encoding="utf-8") as f:
                 json.dump(grid_layout, f, indent=2, ensure_ascii=False)
 
-            # 6. Vista page.json
-            page_file = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
-            page_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(page_file, "w", encoding="utf-8") as f:
-                json.dump(vista_page, f, indent=2, ensure_ascii=False)
+            # 6. Dashboard page.json (write to primary and legacy locations)
+            page_file = ROOT / "outputs" / "dashboard_pages" / "new_dashboard" / "page.json"
+            legacy_page_file = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
+            for p in (page_file, legacy_page_file):
+                p.parent.mkdir(parents=True, exist_ok=True)
+                with open(p, "w", encoding="utf-8") as f:
+                    json.dump(dashboard_page, f, indent=2, ensure_ascii=False)
 
         except Exception as err:
             print(f"Warning: Failed to sync pipeline files to disk: {err}")
@@ -1174,17 +1184,17 @@ def execute_full_pipeline(
 
     return {
         "success": True,
-        "designName": vista_page["title"],
-        "contentId": vista_page["contentId"],
-        "slideId": vista_page["slideId"],
-        "pageId": vista_page["pageId"],
+        "designName": dashboard_page["title"],
+        "contentId": dashboard_page["contentId"],
+        "slideId": dashboard_page["slideId"],
+        "pageId": dashboard_page["pageId"],
         "executionTimeMs": elapsed_ms,
         "sourceDimensions": dims,
         "nodeCount": len(nodes),
         "candidateCount": len(candidates),
         "sourceComponents": source_components,
         "normalizedJson": {
-            "dashboard": vista_page["title"],
+            "dashboard": dashboard_page["title"],
             "candidate_count": len(candidates),
             "candidates": candidates
         },
@@ -1193,11 +1203,11 @@ def execute_full_pipeline(
             "predictions": clean_predictions
         },
         "gridLayout": grid_layout,
-        "pageJson": vista_page,
+        "pageJson": dashboard_page,
         "stats": {
-            "widgets": len(vista_page["widgets"]),
-            "tiles": len(vista_page["tiles"]),
-            "needAttention": vista_page["validation"]["reviewRequired"],
+            "widgets": len(dashboard_page["widgets"]),
+            "tiles": len(dashboard_page["tiles"]),
+            "needAttention": dashboard_page["validation"]["reviewRequired"],
             "infoNotes": 2,
             "validationErrors": 0,
             "classifier": "cached + ml (XGBoost)",
