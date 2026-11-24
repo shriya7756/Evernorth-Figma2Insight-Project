@@ -26,7 +26,7 @@ for node in tree.body:
 if labels is None:
     raise ValueError("Could not find LABELS = {...} in dashboard15_labels.py")
 
-# Map Claude's detailed labels to the five XGBoost classes.
+# Map detailed labels to the five XGBoost classes.
 CLASS_MAP = {
     "screen": "OTHER",
     "top_header": "OTHER",
@@ -122,7 +122,7 @@ combined = combined.drop_duplicates(
 OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 combined.to_csv(OUTPUT_FILE, index=False)
 
-print(f"Claude label entries: {sum(len(v) if isinstance(v, list) else 1 for v in labels.values())}")
+print(f"Label entries: {sum(len(v) if isinstance(v, list) else 1 for v in labels.values())}")
 print(f"Matched labeled candidates: {len(new_df)}")
 print(f"Unmatched node IDs: {len(unmatched)}")
 print(f"Updated labels file: {OUTPUT_FILE}")

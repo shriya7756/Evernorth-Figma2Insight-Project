@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parents[2]
-INPUT = BASE / "dataset" / "labels" / "dashboard15_nodes_for_claude.json"
-OUTPUT_DIR = BASE / "dataset" / "labels" / "claude_chunks"
+INPUT = BASE / "dataset" / "labels" / "dashboard15_nodes.json"
+OUTPUT_DIR = BASE / "dataset" / "labels" / "dashboard15_node_chunks"
 
 CHUNK_SIZE = 250
 

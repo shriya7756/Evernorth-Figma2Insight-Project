@@ -1,21 +1,21 @@
 ﻿import pandas as pd
 
 original = pd.read_csv("dataset/features/component_features.csv", dtype=str)
-claude = pd.read_csv("claude_component_features.csv", dtype=str)
+comparison = pd.read_csv("additional_component_features.csv", dtype=str)
 
 key = ["dashboard_id", "candidate_id"]
 
 print("ORIGINAL rows:", len(original))
-print("CLAUDE rows:", len(claude))
-print("Original columns match:", list(original.columns) == list(claude.columns))
+print("Comparison rows:", len(comparison))
+print("Original columns match:", list(original.columns) == list(comparison.columns))
 print("Original duplicate IDs:", original.duplicated(key).sum())
-print("Claude duplicate IDs:", claude.duplicated(key).sum())
+print("Comparison duplicate IDs:", comparison.duplicated(key).sum())
 
 a = original.drop_duplicates(key).set_index(key)
-b = claude.drop_duplicates(key).set_index(key)
+b = comparison.drop_duplicates(key).set_index(key)
 
-print("Missing from Claude:", len(a.index.difference(b.index)))
-print("Extra in Claude:", len(b.index.difference(a.index)))
+print("Missing from comparison:", len(a.index.difference(b.index)))
+print("Extra in comparison:", len(b.index.difference(a.index)))
 
 common = a.index.intersection(b.index)
 cols = [c for c in original.columns if c not in key]
@@ -37,7 +37,7 @@ print("Changed values:", len(changed))
 for item in changed[:30]:
     print(item)
 
-print("\nClaude dashboard IDs:")
-print(claude["dashboard_id"].value_counts().to_string())
+print("\nComparison dashboard IDs:")
+print(comparison["dashboard_id"].value_counts().to_string())
 
 print("\nDone. Only the first 30 changed values are displayed.")

@@ -4,7 +4,7 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parents[2]
 INPUT = BASE / "dataset" / "dashboards" / "dashboard15.json"
-OUTPUT = BASE / "dataset" / "labels" / "dashboard15_nodes_for_claude.json"
+OUTPUT = BASE / "dataset" / "labels" / "dashboard15_nodes.json"
 
 with INPUT.open(encoding="utf-8") as f:
     data = json.load(f)
