@@ -1,6 +1,6 @@
 """
 Comprehensive pipeline diagnostic script.
-Traces candidates -> predictions -> cleaning -> grid -> Dashboard page.
+Traces candidates -> predictions -> cleaning -> grid -> Vista page.
 Shows each candidate's journey through the pipeline.
 """
 
@@ -13,9 +13,7 @@ ROOT = Path(__file__).resolve().parent
 candidates_file = ROOT / "dataset" / "new_candidates" / "new_dashboard_candidates.json"
 clean_predictions_file = ROOT / "dataset" / "new_candidates" / "new_dashboard_clean_predictions.json"
 grid_layout_file = ROOT / "outputs" / "dashboard_configs" / "new_dashboard" / "grid_layout.json"
-dashboard_page_file = ROOT / "outputs" / "dashboard_pages" / "new_dashboard" / "page.json"
-if not dashboard_page_file.exists():
-    dashboard_page_file = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
+vista_page_file = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
 
 print("=" * 80)
 print("PIPELINE DIAGNOSTIC REPORT")
@@ -35,24 +33,24 @@ predictions = pred_data["predictions"]
 with open(grid_layout_file) as f:
     grid_data = json.load(f)
 
-# Load Dashboard page
-with open(dashboard_page_file) as f:
-    dashboard_page = json.load(f)
+# Load Vista page
+with open(vista_page_file) as f:
+    vista_page = json.load(f)
 
 # Build lookup maps
 pred_map = {p["candidate_id"]: p for p in predictions}
 grid_map = {c["candidate_id"]: c for c in grid_data["components"]}
-widget_map = {w["sourceComponentId"]: w for w in dashboard_page["widgets"]}
+widget_map = {w["sourceComponentId"]: w for w in vista_page["widgets"]}
 
 print(f"\n{'='*80}")
 print(f"CANDIDATES: {len(candidates)}")
 print(f"CLEAN PREDICTIONS: {len(predictions)}")
 print(f"GRID COMPONENTS: {len(grid_data['components'])}")
-print(f"DASHBOARD WIDGETS: {len(dashboard_page['widgets'])}")
+print(f"VISTA WIDGETS: {len(vista_page['widgets'])}")
 print(f"{'='*80}\n")
 
 # Table header
-print(f"{'ID':<10} {'Name':<30} {'Type':<12} {'Pred':<12} {'Grid':<8} {'Widget':<8} {'Notes'}")
+print(f"{'ID':<10} {'Name':<30} {'Type':<12} {'Pred':<12} {'Grid':<8} {'Vista':<8} {'Notes'}")
 print("-" * 120)
 
 for cand in candidates:
@@ -68,7 +66,7 @@ for cand in candidates:
     in_grid = "YES" if grid else "NO"
 
     widget = widget_map.get(cid)
-    in_page = "YES" if widget else "NO"
+    in_vista = "YES" if widget else "NO"
 
     notes = []
     if pred:
@@ -86,7 +84,7 @@ for cand in candidates:
 
     notes_str = "; ".join(notes) if notes else ""
 
-    print(f"{cid:<10} {name:<30} {cand_type:<12} {pred_type:<12} {in_grid:<8} {in_page:<8} {notes_str}")
+    print(f"{cid:<10} {name:<30} {cand_type:<12} {pred_type:<12} {in_grid:<8} {in_vista:<8} {notes_str}")
 
 print("\n" + "=" * 80)
 print("SPECIFIC ISSUES IDENTIFIED:")

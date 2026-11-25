@@ -182,6 +182,7 @@ export function WorkspaceView({
                 design={pipeline.design}
                 pluginAvailable={!!status?.pluginDataReceived}
                 pluginDesignName={status?.designName ?? null}
+                maxUploadMb={status?.maxUploadMb}
                 busy={pipeline.busy}
                 onLoadPlugin={pipeline.loadFromPlugin}
                 onUpload={pipeline.loadFromFile}

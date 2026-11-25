@@ -2,12 +2,14 @@
 
 Figma2Insight turns Figma dashboard designs into structured, validated dashboard layouts. It finds component
 candidates in an exported design, classifies them with an XGBoost model (KPI cards, charts, tables and more), maps
-them onto a 12 × 12 grid and generates a structured dashboard `page.json`. Every generated layout is saved as an analysis you can
+them onto a 12 × 12 grid and generates a Vista `page.json`. Every generated layout is saved as an analysis you can
 revisit, preview, download or delete.
 
 ## Features
 
-- **Two ways in** – send the current page from the Figma plugin, or upload a Figma JSON export (validated, 50 MB limit).
+- **Two ways in** – send the selected frame from the Figma2Insight plugin (it returns an import code), or upload a
+  Figma JSON export (validated; size limit set by `MAX_UPLOAD_MB`). The upload panel explains how to extract the JSON
+  with the Figma REST API.
 - **Four-stage pipeline** – Normalize → Extract features → Classify (XGBoost) → Generate layout. Run stages one by one
   or all at once, with progress, per-stage results, inline errors and retry.
 - **Package details** – optional title, slide ID, subject area, topic and slide name, validated in the browser and on
@@ -16,7 +18,7 @@ revisit, preview, download or delete.
   with a component inspector and a touch-friendly list on small screens.
 - **Saved analyses (MongoDB)** – searchable, paginated history of runs with stats, package details and all JSON
   outputs; open any run in the preview, view/download outputs, or delete it.
-- **Guide** – the grid rules, Figma → Dashboard widget mapping and validation checks.
+- **Guide** – the grid rules, Figma → Vista widget mapping and validation checks.
 
 ## Technology
 
@@ -41,8 +43,8 @@ Figma2Insight/
 ├── models/                   # Trained model artifacts
 ├── dataset/                  # Training data, candidates and the active plugin design
 ├── outputs/                  # Generated layouts/pages (outputs/history/ when not using MongoDB)
-├── figma_plugin/             # Figma plugin that sends the current page
-├── plugin_receiver.py        # Optional receiver used by the Figma plugin (port 8765)
+├── figma_plugin/             # Figma2Insight plugin (see figma_plugin/README.md)
+├── plugin_receiver.py        # Optional local relay for older plugin copies (port 8765 → API /ingest)
 ├── dashboard_preview.html    # Standalone preview of the latest generated page
 ├── tests/                    # Backend tests (pytest)
 └── frontend/
@@ -108,10 +110,11 @@ cd frontend
 npm run dev
 ```
 
-Optional terminal 3 – Figma plugin receiver (http://127.0.0.1:8765):
+The API is also the Figma plugin receiver (`POST /ingest`). Import `figma_plugin/manifest.json` in Figma desktop and
+choose **Local development** in the plugin panel. Older plugin copies that post to port 8765 can use the relay:
 
 ```bash
-python plugin_receiver.py
+python plugin_receiver.py     # relays http://127.0.0.1:8765/ingest to the API
 ```
 
 ### 5. Production-style run
@@ -131,7 +134,11 @@ python server.py            # serves the built frontend from frontend/dist at ht
 | `PORT`               | No       | `8001`                                          | API port |
 | `HOST`               | No       | `127.0.0.1`                                     | API bind address |
 | `CORS_ORIGINS`       | No       | `http://localhost:5174,http://127.0.0.1:5174`   | Allowed browser origins (comma-separated) |
-| `MAX_UPLOAD_MB`      | No       | `50`                                            | Upload size limit |
+| `MAX_UPLOAD_MB`      | No       | `50`                                            | Upload size limit (use 25 on 512 MB hosts) |
+| `FRONTEND_URL`       | No       | `https://figma2insight.netlify.app`             | Link the plugin shows to open a saved analysis |
+| `RATE_LIMIT_PER_MINUTE` | No    | `30`                                            | Uploads/plugin sends per client IP per minute (0 = off) |
+| `WORKSPACE_TTL_HOURS`| No       | `24`                                            | Lifetime of per-design pipeline workspaces |
+| `LOG_LEVEL`          | No       | `INFO`                                          | `DEBUG` adds candidate/chart/table extraction traces |
 
 Credentials are only read from the environment / `.env` (which is git-ignored). Nothing is hardcoded.
 
@@ -178,11 +185,13 @@ exposed. If storage is unavailable when a layout is generated, the result is sti
 
 | Method & path | Purpose |
 |---------------|---------|
-| `GET /api/status` | API, model and storage health |
-| `GET /api/load-plugin-data` | Load the design last sent by the Figma plugin |
-| `POST /api/upload` | Validate an uploaded Figma JSON file |
-| `POST /api/normalize` · `/api/preprocess` · `/api/classify` · `/api/generate-layout` | Pipeline stages (the last one saves the run) |
-| `GET /api/download/page.json` | Latest generated page |
+| `GET /api/health` | Readiness probe: 200 once the model is loaded, else 503 |
+| `GET /api/status` | API, model classes, storage health, upload limit |
+| `GET /api/load-plugin-data?code=` | Load a plugin design by import code (or the latest one without a code) |
+| `POST /api/upload` | Validate an uploaded Figma JSON file into a private workspace; returns `designId` |
+| `POST /api/normalize` · `/api/preprocess` · `/api/classify` · `/api/generate-layout` | Pipeline stages for `designId` (the last one saves the run) |
+| `GET /api/download/page.json?designId=` | Generated page for a design |
+| `POST /ingest` | Figma plugin receiver: runs the full pipeline, saves the analysis, returns an import code |
 | `GET /api/history?q=&limit=&skip=` | List saved analyses |
 | `GET /api/history/{runId}` | Run details and available outputs |
 | `GET /api/history/{runId}/json/{type}` · `/download/{type}` | View or download an output |
@@ -194,11 +203,13 @@ Interactive docs are available at `http://127.0.0.1:8001/docs` while the API is 
 
 ```text
 Figma JSON → Candidate generation → Feature extraction → XGBoost classification
-           → Prediction cleaning → 12×12 grid layout → Dashboard page.json → Preview / saved analysis
+           → Prediction cleaning → 12×12 grid layout → Vista page.json → Preview / saved analysis
 ```
 
-Training and research scripts (feature extraction, labelling, `src/model/train_*.py`, `src/model/predict.py`) are
-unchanged; see `steps.txt` for the original command-line workflow.
+The classifier is the updated model from `vrinda07-ui/evernorth` (classes CHART, FILTER, HEADER, KPI_CARD, OTHER,
+SIDEBAR, TABLE; 20 features), with its chart, table and structural-component extraction. Training and research
+scripts (feature extraction, labelling, `src/model/train_*.py`, `src/model/predict.py`) are kept; see `steps.txt` for
+the command-line workflow, `INTEGRATION_REPORT.md` for what changed and `DEPLOYMENT.md` for production.
 
 ## Design system
 

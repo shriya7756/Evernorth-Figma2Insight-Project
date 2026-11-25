@@ -15,7 +15,7 @@ from sklearn.utils.class_weight import compute_sample_weight
 # --------------------------------------------------
 
 DATA_FILE = Path(
-    "dataset/features/component_features_labeled copy.csv"
+    "dataset/features/training_dataset.csv"
 )
 
 MODEL_DIR = Path("models")
@@ -26,8 +26,8 @@ SUPPORTED_LABELS = [
     "CHART",
     "TABLE",
     "FILTER",
-    "NAVBAR",
     "HEADER",
+    "SIDEBAR",
     "OTHER",
 ]
 

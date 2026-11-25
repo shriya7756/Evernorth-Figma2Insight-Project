@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { DashboardPageJson, HistoryEntry, HistoryRunDetails, JsonType, StorageBackend } from '../types'
+import { HistoryEntry, HistoryRunDetails, JsonType, StorageBackend, VistaPageJson } from '../types'
 import {
   ApiError,
   deleteHistoryRun,
@@ -50,7 +50,7 @@ const JSON_TYPE_LABELS: Record<JsonType, { label: string; description: string }>
 }
 
 interface HistoryViewProps {
-  onOpenPreview: (pageJson: DashboardPageJson, label: string) => void
+  onOpenPreview: (pageJson: VistaPageJson, label: string) => void
 }
 
 function errorText(err: unknown) {
@@ -158,6 +158,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onOpenPreview }) => {
     }
   }
 
+  // Deep link from the Figma plugin: #/history?run=<runId> opens that analysis.
+  const deepLinkHandled = useRef(false)
+  useEffect(() => {
+    if (deepLinkHandled.current) return
+    deepLinkHandled.current = true
+    const runId = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('run')
+    if (runId && /^[A-Za-z0-9_-]{1,64}$/.test(runId)) void openRun(runId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const viewJson = async (run: HistoryRunDetails, type: JsonType) => {
     setBusyAction(`view:${type}`)
     try {
@@ -173,7 +183,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onOpenPreview }) => {
   const openPreview = async (run: HistoryRunDetails) => {
     setBusyAction('preview')
     try {
-      const page = (await fetchHistoryJson(run.runId, 'page_json')) as DashboardPageJson
+      const page = (await fetchHistoryJson(run.runId, 'page_json')) as VistaPageJson
       setSelected(null)
       onOpenPreview(page, `Saved · ${formatDateTime(run.timestamp)}`)
     } catch (err) {

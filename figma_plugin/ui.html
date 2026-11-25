@@ -1,51 +1,207 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    body {
-      font: 13px sans-serif;
-      padding: 16px;
+    :root {
+      --ink: var(--figma-color-text, #0b2a2f);
+      --muted: var(--figma-color-text-secondary, #4b6b70);
+      --bg: var(--figma-color-bg, #ffffff);
+      --panel: var(--figma-color-bg-secondary, #f1f8f7);
+      --border: var(--figma-color-border, #cfe5e2);
+      --accent: #0f5c5c;
+      --accent-ink: #ffffff;
+      --ok: #16a34a;
+      --warn: #d97706;
+      --err: #dc2626;
     }
-    button {
-      width: 100%;
-      padding: 11px;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-    #status {
-      margin-top: 14px;
-      overflow-wrap: anywhere;
-    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font: 12px/1.45 Inter, system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+    h1 { margin: 0; font-size: 14px; }
+    p { margin: 4px 0 0; color: var(--muted); }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+    .label { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; }
+    .dot.online { background: var(--ok); } .dot.degraded, .dot.checking { background: var(--warn); } .dot.offline { background: var(--err); }
+    select, button { font: inherit; }
+    select { width: 100%; margin-top: 6px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--ink); }
+    .scope { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; padding: 3px; border-radius: 8px; background: var(--border); }
+    .scope button { padding: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-weight: 600; }
+    .scope button[aria-pressed="true"] { background: var(--bg); color: var(--ink); }
+    .primary { width: 100%; margin-top: 12px; padding: 10px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+    .primary:disabled { opacity: .55; cursor: default; }
+    .link { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; }
+    #status { margin-top: 12px; overflow-wrap: anywhere; }
+    #status.error { color: var(--err); }
+    .code { font: 600 16px/1 ui-monospace, Menlo, monospace; letter-spacing: .08em; }
+    .spinner { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
-  <h3>Figma Dashboard Generator</h3>
-  <p>Send the current Figma page to your local Python pipeline.</p>
-  <button id="send">Send current page</button>
-  <div id="status">Ready.</div>
+  <h1>Figma2Insight</h1>
+  <p>Send a dashboard design to Figma2Insight to classify its components and generate a Dashboard page.json.</p>
+
+  <div class="card">
+    <div class="row">
+      <span class="label">Server</span>
+      <button class="link" id="recheck" type="button">Check</button>
+    </div>
+    <div style="margin-top:4px"><span class="dot checking" id="dot"></span><span id="conn">Checking connection…</span></div>
+    <select id="target" aria-label="Server">
+      <option value="production">Figma2Insight (hosted)</option>
+      <option value="local">Local development (localhost:8001)</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <span class="label">What to send</span>
+    <div class="scope" role="group" aria-label="What to send">
+      <button type="button" id="scope-selection" aria-pressed="true">Selected frame</button>
+      <button type="button" id="scope-page" aria-pressed="false">Whole page</button>
+    </div>
+    <p id="selection-text">Select the dashboard frame on the canvas.</p>
+  </div>
+
+  <button class="primary" id="send" type="button">Send to Figma2Insight</button>
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <div class="card" id="result" hidden>
+    <span class="label">Import code</span>
+    <div class="row" style="margin-top:4px">
+      <span class="code" id="code"></span>
+      <button class="link" id="copy" type="button">Copy</button>
+    </div>
+    <p id="result-text"></p>
+    <p>In Figma2Insight, open <strong>Workspace → Figma plugin</strong> and enter this code, or
+      <button class="link" id="open" type="button">open the saved analysis</button>.</p>
+  </div>
 
   <script>
-    const status = document.getElementById("status");
-    const button = document.getElementById("send");
+    const $ = (id) => document.getElementById(id);
+    const post = (msg) => parent.postMessage({ pluginMessage: msg }, "*");
+    let scope = "selection";
+    let selectionCount = 0;
+    let online = false;
+    let sending = false;
+    let openUrl = null;
+    let slowTimer = null;
 
-    button.onclick = () => {
-      button.disabled = true;
-      status.textContent = "Reading design and sending to Python...";
-      parent.postMessage(
-        { pluginMessage: { type: "send-design" } },
-        "*"
-      );
+    function setScope(next) {
+      scope = next;
+      $("scope-selection").setAttribute("aria-pressed", String(next === "selection"));
+      $("scope-page").setAttribute("aria-pressed", String(next === "page"));
+      updateSend();
+    }
+
+    function updateSend() {
+      const needsSelection = scope === "selection" && selectionCount === 0;
+      $("send").disabled = sending || needsSelection;
+      $("send").textContent = sending ? "Working…" : "Send to Figma2Insight";
+    }
+
+    function setStatus(html, isError) {
+      $("status").innerHTML = html;
+      $("status").className = isError ? "error" : "";
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    $("scope-selection").onclick = () => setScope("selection");
+    $("scope-page").onclick = () => setScope("page");
+    $("target").onchange = (e) => post({ type: "set-target", target: e.target.value });
+    $("recheck").onclick = () => post({ type: "check-connection" });
+    $("open").onclick = () => openUrl && post({ type: "open-url", url: openUrl });
+    $("copy").onclick = () => {
+      const text = $("code").textContent;
+      const area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      area.remove();
+      post({ type: "notify", text: ok ? "Import code copied" : "Copy failed — select the code manually" });
+    };
+
+    $("send").onclick = () => {
+      sending = true;
+      $("result").hidden = true;
+      updateSend();
+      setStatus('<span class="spinner"></span>Preparing…');
+      clearTimeout(slowTimer);
+      slowTimer = setTimeout(() => {
+        if (sending) setStatus('<span class="spinner"></span>Still working… the hosted server may be waking up (up to a minute).');
+      }, 15000);
+      post({ type: "send-design", scope });
     };
 
     window.onmessage = (event) => {
-      const message = event.data.pluginMessage;
-      if (!message) return;
+      const msg = event.data && event.data.pluginMessage;
+      if (!msg) return;
 
-      status.textContent = message.text;
-      button.disabled = false;
+      if (msg.type === "init") {
+        $("target").value = msg.settings.target;
+        onSelection(msg.selection);
+      } else if (msg.type === "selection") {
+        onSelection(msg.selection);
+      } else if (msg.type === "connection") {
+        const labels = {
+          checking: "Checking connection…",
+          online: "Connected · model ready",
+          degraded: "Connected, but the model is unavailable",
+          offline: "Not reachable",
+        };
+        online = msg.state === "online";
+        $("dot").className = "dot " + msg.state;
+        $("conn").textContent = labels[msg.state] + (msg.detail ? " — " + msg.detail : "");
+        if (msg.state === "checking" && msg.base.indexOf("onrender.com") !== -1) {
+          $("conn").textContent = "Checking connection… (the hosted server may take a minute to wake up)";
+        }
+      } else if (msg.type === "progress") {
+        setStatus('<span class="spinner"></span>' + escapeHtml(msg.text));
+      } else if (msg.type === "done") {
+        sending = false;
+        clearTimeout(slowTimer);
+        updateSend();
+        const r = msg.result || {};
+        const summary = (r.widgets || 0) + " widgets · " + (r.tiles || 0) + " tiles" +
+          (r.needAttention ? " · " + r.needAttention + " need review" : "");
+        if (r.importCode) {
+          setStatus("✓ “" + escapeHtml(r.designName || "Design") + "” processed.");
+          $("code").textContent = r.importCode;
+          $("result-text").textContent = summary;
+          openUrl = r.openUrl || null;
+          $("open").hidden = !openUrl;
+          $("result").hidden = false;
+        } else {
+          setStatus("✓ Processed (" + escapeHtml(summary) + "), but it could not be saved. In Figma2Insight use “Check for plugin design”.");
+        }
+      } else if (msg.type === "error") {
+        sending = false;
+        clearTimeout(slowTimer);
+        updateSend();
+        setStatus("✕ " + escapeHtml(msg.text), true);
+      }
     };
+
+    function onSelection(sel) {
+      selectionCount = sel.count;
+      $("selection-text").textContent = sel.count
+        ? "Selected: " + sel.names.join(", ") + (sel.count > 3 ? " +" + (sel.count - 3) + " more" : "")
+        : scope === "selection"
+          ? "Select the dashboard frame on the canvas, or send the whole page."
+          : "Page: " + sel.pageName;
+      if (scope === "page") $("selection-text").textContent = "Page: " + sel.pageName + (sel.count ? " (selection ignored)" : "");
+      updateSend();
+    }
+
+    // Default to the whole page when nothing is selected at launch.
+    post({ type: "init" });
   </script>
 </body>
 </html>

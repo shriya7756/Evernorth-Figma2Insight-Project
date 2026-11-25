@@ -56,11 +56,14 @@ export function toPackagePayload(details: PackageDetails) {
 }
 
 /** Basic client-side checks before a Figma JSON file is read and uploaded. */
-export function validateDesignFile(file: Pick<File, 'name' | 'size'>): string | null {
+export function validateDesignFile(
+  file: Pick<File, 'name' | 'size'>,
+  maxBytes: number = MAX_UPLOAD_BYTES,
+): string | null {
   if (!file.name.toLowerCase().endsWith('.json')) {
     return 'Choose a .json file exported from Figma or the Figma2Insight plugin.'
   }
   if (file.size === 0) return 'This file is empty.'
-  if (file.size > MAX_UPLOAD_BYTES) return 'This file is larger than the 50 MB limit.'
+  if (file.size > maxBytes) return `This file is larger than the ${Math.round(maxBytes / (1024 * 1024))} MB limit.`
   return null
 }

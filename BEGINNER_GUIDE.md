@@ -12,7 +12,7 @@ Figma2Insight takes any **Figma dashboard design** and automatically:
 1. **Discovers components**: Scans Figma layers to find KPI cards, charts, data tables, and filters.
 2. **Classifies them with AI**: Runs an XGBoost machine learning model trained on semantic, graphical, and geometric features to label each component (`KPI_CARD`, `CHART`, `TABLE`, or `OTHER`).
 3. **Generates grid layout**: Calculates the optimal placement on a responsive 12×12 grid system.
-4. **Exports standard formats**: Assembles and validates a production-ready `page.json` specification for the dashboard platform.
+4. **Exports standard formats**: Assembles and validates a production-ready `page.json` specification for the Vista dashboard platform.
 
 In short: **Raw Figma Design → AI Component Classification → Production Dashboard (`page.json`)**.
 
@@ -25,7 +25,7 @@ In short: **Raw Figma Design → AI Component Classification → Production Dash
 | **Workspace** | The central command center where you load designs, configure package details, and execute the ML pipeline. |
 | **Preview** | An interactive, visual canvas that shows your components mapped onto their 12×12 grid positions. |
 | **Saved analyses** | A searchable cloud history (stored in MongoDB Atlas) of all your past pipeline runs, downloadable outputs, and metadata. |
-| **Guide** | In-app reference covering 12×12 grid rules, Dashboard widget schema mappings, and validation heuristics. |
+| **Guide** | In-app reference covering 12×12 grid rules, Vista widget schema mappings, and validation heuristics. |
 
 ---
 
@@ -54,7 +54,7 @@ Run the 4 automated AI processing stages:
 | **1** | **Normalize** | Traverses the Figma tree, filters noise, and extracts component candidates. |
 | **2** | **Extract features** | Computes 20 semantic and geometric features (dimensions, text density, numbers, percentages, colors). |
 | **3** | **Classify components** | The XGBoost model predicts component labels (`KPI_CARD`, `CHART`, `TABLE`, `OTHER`). |
-| **4** | **Generate layout** | Applies spatial heuristics, maps onto a 12×12 grid, and generates Dashboard `page.json`. |
+| **4** | **Generate layout** | Applies spatial heuristics, maps onto a 12×12 grid, and generates Vista `page.json`. |
 
 #### How to run the pipeline:
 - **⚡ Run full pipeline**: Runs all 4 stages automatically end-to-end (Recommended).

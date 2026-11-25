@@ -233,7 +233,7 @@ button:focus-visible {
 <script>
 // The API serves the latest page at /api/download/page.json; the static path
 // works when this file is opened with `python -m http.server` from the project root.
-const PAGE_URLS = ["/api/download/page.json", "/outputs/dashboard_pages/new_dashboard/page.json", "/outputs/vista_pages/new_dashboard/page.json"];
+const PAGE_URLS = ["/api/download/page.json", "/outputs/vista_pages/new_dashboard/page.json"];
 const GRID_COLUMNS = 12;
 
 function escapeHTML(value) {
@@ -364,7 +364,7 @@ function prepareWidgets(widgets) {
 }
 
 function renderWidget(widget) {
-  // componentType holds the classifier label (CHART, KPI_CARD...); type is the Dashboard widget type.
+  // componentType holds the classifier label (CHART, KPI_CARD...); type is the Vista widget type.
   const type = String(widget.componentType || widget.type || "OTHER");
   const safeType = escapeHTML(type);
   const grid = widget.grid;

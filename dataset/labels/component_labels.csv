@@ -138,7 +138,7 @@ dashboard13,1:408,Frame 4,
 dashboard13,1:415,Frame 5,
 dashboard13,1:422,Frame 6,
 dashboard13,1:669,Upcoming,
-dashboard14,8121:111,top bar,
+dashboard14,8121:111,top bar,HEADER
 dashboard14,8121:155,Todays Sales,
 dashboard14,8121:156,Today Sales,
 dashboard14,8121:217,Visitor Insights,
@@ -485,7 +485,7 @@ dashboard4,1:494,Horizontal container,
 dashboard4,1:652,Card,
 dashboard4,1:754,Card,
 dashboard4,1:755,Tree,
-dashboard4,1:867,Horizontal container,
+dashboard4,1:867,Horizontal container,HEADER
 dashboard4,1:868,Horizontal container,
 dashboard4,1:909,Table,
 dashboard4,1:948,Text input,
@@ -870,3 +870,52 @@ dashboard15,3:3310,Header row,OTHER
 dashboard15,3:3906,Contract Summary,TABLE
 dashboard15,3:3907,Table heading,OTHER
 dashboard15,3:3915,Header row,OTHER
+dashboard16,2:2433,,SIDEBAR
+dashboard16,2:61268,,SIDEBAR
+dashboard16,2:61705,,SIDEBAR
+dashboard16,2:62087,,SIDEBAR
+dashboard16,2:62472,,SIDEBAR
+dashboard16,2:62857,,SIDEBAR
+dashboard16,2:63414,,SIDEBAR
+dashboard16,2:63831,,SIDEBAR
+dashboard16,2:64253,,SIDEBAR
+dashboard16,2:64718,,SIDEBAR
+dashboard16,2:64972,,SIDEBAR
+dashbaord2,42:17,,SIDEBAR
+dashbaord2,42:81,,HEADER
+dashboard13,1:680,,SIDEBAR
+dashboard15,3:33,,SIDEBAR
+dashboard15,3:106,,HEADER
+dashboard15,3:204,,SIDEBAR
+dashboard15,3:277,,HEADER
+dashboard15,3:363,,SIDEBAR
+dashboard15,3:436,,HEADER
+dashboard15,3:533,,SIDEBAR
+dashboard15,3:606,,HEADER
+dashboard15,3:673,,SIDEBAR
+dashboard15,3:746,,HEADER
+dashboard15,3:832,,SIDEBAR
+dashboard15,3:905,,HEADER
+dashboard15,3:1007,,SIDEBAR
+dashboard15,3:1080,,HEADER
+dashboard15,3:1157,,HEADER
+dashboard15,3:1237,,SIDEBAR
+dashboard15,3:1310,,HEADER
+dashboard15,3:1386,,SIDEBAR
+dashboard15,3:1459,,HEADER
+dashboard17,42:17,,SIDEBAR
+dashboard17,42:81,,HEADER
+dashboard1,12:5,,SIDEBAR
+dashboard1,12:42,,HEADER
+dashboard17,42:106,,KPI_CARD
+dashboard17,42:119,,KPI_CARD
+dashboard17,42:135,,KPI_CARD
+dashboard17,42:147,,KPI_CARD
+figma_data,4:51,,HEADER
+figma_data,4:63,,KPI_CARD
+figma_data,4:86,,KPI_CARD
+figma_data,4:109,,KPI_CARD
+figma_data,4:132,,KPI_CARD
+figma_data,4:164,,CHART
+figma_data,4:271,,CHART
+figma_data,4:310,,TABLE

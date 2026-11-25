@@ -8,15 +8,25 @@ import { Alert } from '../ui/Alert'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Card, CardHeader } from '../ui/Card'
+import { FigmaJsonHelp } from './FigmaJsonHelp'
 
 type Source = 'plugin' | 'upload'
+
+/** An import code can be shared as a link: #/workspace?code=3f9a1c2b */
+function initialImportCode(): string {
+  if (typeof window === 'undefined') return ''
+  const query = window.location.hash.split('?')[1] ?? ''
+  return (new URLSearchParams(query).get('code') ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64)
+}
 
 interface SourcePanelProps {
   design: LoadedDesign | null
   pluginDesignName: string | null
   pluginAvailable: boolean
+  /** Upload limit reported by the API; defaults to 50 MB. */
+  maxUploadMb?: number
   busy: boolean
-  onLoadPlugin: () => Promise<void>
+  onLoadPlugin: (importCode?: string) => Promise<void>
   onUpload: (file: File) => Promise<void>
   onClear: () => void
 }
@@ -25,6 +35,7 @@ export function SourcePanel({
   design,
   pluginDesignName,
   pluginAvailable,
+  maxUploadMb = 50,
   busy,
   onLoadPlugin,
   onUpload,
@@ -35,6 +46,7 @@ export function SourcePanel({
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [importCode, setImportCode] = useState(() => initialImportCode())
   const inputRef = useRef<HTMLInputElement>(null)
   const inputId = useId()
   const headingId = useId()
@@ -53,7 +65,7 @@ export function SourcePanel({
 
   const handleFile = (file: File | undefined) => {
     if (!file) return
-    const problem = validateDesignFile(file)
+    const problem = validateDesignFile(file, maxUploadMb * 1024 * 1024)
     setPendingFile(file)
     if (problem) {
       setError(problem)
@@ -148,25 +160,49 @@ export function SourcePanel({
       <div id={`${inputId}-panel`} role="tabpanel" aria-labelledby={`${inputId}-tab-${source}`} className="mt-5">
         {source === 'plugin' ? (
           <div key="plugin" className="animate-fade-in space-y-4">
-            {pluginAvailable ? (
+            <p className="text-sm leading-relaxed text-teal-700">
+              In Figma, run the <strong>Figma2Insight</strong> plugin, select the dashboard frame and choose{' '}
+              <em>Send to Figma2Insight</em>. Enter the import code it shows to load your design.
+            </p>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (importCode.trim()) run(() => onLoadPlugin(importCode.trim()))
+              }}
+            >
+              <label htmlFor={`${inputId}-code`} className="sr-only">
+                Import code
+              </label>
+              <input
+                id={`${inputId}-code`}
+                value={importCode}
+                onChange={(e) => setImportCode(e.target.value.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64))}
+                placeholder="Import code, e.g. 3f9a1c2b"
+                autoComplete="off"
+                spellCheck={false}
+                disabled={loading || busy}
+                className="h-11 min-w-0 flex-1 rounded-xl border border-teal-200 bg-white px-3.5 font-mono text-sm text-ink placeholder:font-sans placeholder:text-teal-400 transition-[border-color,box-shadow] duration-200 hover:border-teal-300 focus-visible:border-teal-700 disabled:cursor-not-allowed disabled:bg-teal-50"
+              />
+              <Button type="submit" loading={loading && !!importCode.trim()} disabled={busy || !importCode.trim()}>
+                Load
+              </Button>
+            </form>
+            {pluginAvailable && (
               <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-teal-600">Ready from plugin</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-teal-600">Latest from plugin</p>
                 <p className="mt-1 truncate font-semibold text-ink">{pluginDesignName || 'Untitled design'}</p>
               </div>
-            ) : (
-              <p className="text-sm leading-relaxed text-teal-700">
-                No design has been received yet. In Figma, run the <strong>Local Dashboard Pipeline</strong> plugin and
-                choose <em>Send current page</em>, then load it here.
-              </p>
             )}
             <Button
               className="w-full"
-              onClick={() => run(onLoadPlugin)}
-              loading={loading}
+              variant={pluginAvailable ? 'primary' : 'secondary'}
+              onClick={() => run(() => onLoadPlugin())}
+              loading={loading && !importCode.trim()}
               disabled={busy}
               icon={<Plug className="size-4" />}
             >
-              {loading ? 'Loading design…' : pluginAvailable ? 'Use this design' : 'Check for plugin design'}
+              {loading ? 'Loading design…' : pluginAvailable ? 'Use latest plugin design' : 'Check for plugin design'}
             </Button>
           </div>
         ) : (
@@ -196,7 +232,7 @@ export function SourcePanel({
               <span className="mt-3 text-sm font-semibold text-ink">
                 {loading ? 'Validating design…' : 'Drop a Figma JSON file, or browse'}
               </span>
-              <span className="mt-1 text-xs text-teal-600">.json up to 50 MB · Figma REST export or plugin payload</span>
+              <span className="mt-1 text-xs text-teal-600">.json up to {maxUploadMb} MB · Figma REST export or plugin payload</span>
               {pendingFile && (
                 <span className="mt-3 max-w-full truncate rounded-full bg-white px-3 py-1 text-xs font-medium text-teal-700 ring-1 ring-teal-200">
                   {pendingFile.name} · {formatBytes(pendingFile.size)}
@@ -215,6 +251,7 @@ export function SourcePanel({
                 }}
               />
             </label>
+            <FigmaJsonHelp />
           </div>
         )}
       </div>
@@ -230,7 +267,11 @@ export function SourcePanel({
                 Choose another file
               </Button>
             ) : (
-              <Button variant="secondary" size="sm" onClick={() => run(onLoadPlugin)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => run(() => onLoadPlugin(importCode.trim() || undefined))}
+              >
                 Try again
               </Button>
             )

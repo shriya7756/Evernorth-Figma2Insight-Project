@@ -132,8 +132,11 @@ export function fetchBackendStatus() {
   return request<BackendStatus>('/status', { timeoutMs: 60_000 })
 }
 
-export async function loadPluginData(): Promise<LoadedDesign> {
-  const data = await request<Omit<LoadedDesign, 'source'>>('/load-plugin-data', { timeoutMs: 60_000 })
+/** Load a design sent by the Figma plugin: by its import code, or the most recent one without a code. */
+export async function loadPluginData(importCode?: string): Promise<LoadedDesign> {
+  const code = importCode?.trim()
+  const path = code ? `/load-plugin-data?code=${encodeURIComponent(code)}` : '/load-plugin-data'
+  const data = await request<Omit<LoadedDesign, 'source'>>(path, { timeoutMs: 90_000 })
   return { ...data, source: 'plugin' }
 }
 
@@ -152,7 +155,7 @@ export async function uploadFigmaFile(file: File): Promise<LoadedDesign> {
 // Pipeline stages
 // ---------------------------------------------------------------------------
 
-type StageParams = { figmaJson?: unknown }
+type StageParams = { figmaJson?: unknown; designId?: string }
 
 export function runNormalize(params: StageParams) {
   return postJson<{ candidateCount: number; documentName: string }>('/normalize', params)
@@ -174,8 +177,9 @@ export function runGenerateLayout(params: StageParams & { packageDetails?: Packa
   })
 }
 
-export function getDownloadPageUrl(): string {
-  return `${getApiBase()}/download/page.json`
+export function getDownloadPageUrl(designId?: string): string {
+  const qs = designId ? `?designId=${encodeURIComponent(designId)}` : ''
+  return `${getApiBase()}/download/page.json${qs}`
 }
 
 // ---------------------------------------------------------------------------

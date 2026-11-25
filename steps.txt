@@ -164,9 +164,9 @@ Click "Load Plugin Data" in frontend
 Click "Normalize" to extract candidates
 Click "Preprocess" to extract features
 Click "Run Model" for XGBoost classification
-Click "Generate Layout" for 12x12 grid and Dashboard page.json
+Click "Generate Layout" for 12x12 grid and Vista page.json
 Download page.json or view preview
-The 12x12 grid preview is already available in the existing LiveDashboardPreview component which displays the generated Dashboard page.json.
+The 12x12 grid preview is already available in the existing LiveDashboardPreview component which displays the generated Vista page.json.
 
 Feedback submitted
 

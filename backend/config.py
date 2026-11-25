@@ -54,6 +54,10 @@ class Settings:
     cors_origins: List[str]
     max_upload_mb: int
     port: int
+    frontend_url: str
+    workspace_ttl_hours: int
+    rate_limit_per_minute: int
+    log_level: str
 
     @property
     def mongodb_enabled(self) -> bool:
@@ -77,4 +81,8 @@ def get_settings() -> Settings:
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
         max_upload_mb=_int_env("MAX_UPLOAD_MB", 50),
         port=_int_env("PORT", 8001),
+        frontend_url=(os.environ.get("FRONTEND_URL") or "https://figma2insight.netlify.app").strip().rstrip("/"),
+        workspace_ttl_hours=_int_env("WORKSPACE_TTL_HOURS", 24),
+        rate_limit_per_minute=_int_env("RATE_LIMIT_PER_MINUTE", 30, minimum=0),
+        log_level=(os.environ.get("LOG_LEVEL") or "INFO").strip().upper(),
     )

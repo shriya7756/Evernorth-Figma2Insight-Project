@@ -25,3 +25,6 @@ dataset/features/*backup*.csv
 dataset/features/duplicate_feature_review.csv
 dataset/features/unlabelled_components.csv
 dataset/features/unmatched_feature_components.csv
+
+# Per-design pipeline workspaces (runtime scratch space)
+outputs/workspaces/

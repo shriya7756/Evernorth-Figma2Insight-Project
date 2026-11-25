@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { MousePointerClick, X } from 'lucide-react'
-import { DashboardTile, DashboardWidget } from '../types'
+import { VistaTile, VistaWidget } from '../types'
 import { cn } from '../lib/cn'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 
 interface AbsoluteLayoutViewerProps {
-  tiles: DashboardTile[]
-  widgets: DashboardWidget[]
+  tiles: VistaTile[]
+  widgets: VistaWidget[]
   dashboardSize: { width: number; height: number }
 }
 
@@ -15,6 +15,9 @@ const TYPE_STYLES: Record<string, { tile: string; chip: string; label: string }>
   KPI_CARD: { tile: 'border-aqua-500/60 bg-aqua-50', chip: 'bg-aqua-400 text-ink', label: 'KPI card' },
   CHART: { tile: 'border-teal-500/50 bg-teal-50', chip: 'bg-teal-700 text-white', label: 'Chart' },
   TABLE: { tile: 'border-teal-700/50 bg-white', chip: 'bg-ink text-white', label: 'Table' },
+  FILTER: { tile: 'border-teal-200 bg-white', chip: 'bg-teal-100 text-teal-700', label: 'Filter' },
+  HEADER: { tile: 'border-teal-200 bg-white', chip: 'bg-teal-100 text-teal-700', label: 'Header' },
+  SIDEBAR: { tile: 'border-teal-200 bg-white', chip: 'bg-teal-100 text-teal-700', label: 'Sidebar' },
   OTHER: { tile: 'border-teal-200 bg-white', chip: 'bg-teal-100 text-teal-700', label: 'Other' },
 }
 
@@ -22,7 +25,7 @@ const styleFor = (type: string) => TYPE_STYLES[type] ?? TYPE_STYLES.OTHER
 
 const isNegativeTrend = (trend: string) => /^[−-]|↓|↘/.test(trend.trim())
 
-function WidgetInspector({ widget, onClose }: { widget: DashboardWidget; onClose: () => void }) {
+function WidgetInspector({ widget, onClose }: { widget: VistaWidget; onClose: () => void }) {
   const rows: [string, React.ReactNode][] = [
     ['Component type', styleFor(widget.componentType).label],
     ['Semantic label', widget.semanticLabel || '—'],
@@ -71,6 +74,44 @@ function WidgetInspector({ widget, onClose }: { widget: DashboardWidget; onClose
           </div>
         ))}
       </dl>
+      {(widget.chartDataWarning || widget.tableDataWarning) && (
+        <p className="mt-3 rounded-lg bg-caution-50 px-3 py-2 text-xs text-caution-700">
+          {widget.chartDataWarning || widget.tableDataWarning}
+        </p>
+      )}
+      {widget.tableConfig && widget.tableConfig.columns.length > 0 && (widget.tableConfig.rows?.length ?? 0) > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-teal-600">
+            Table data · {widget.tableConfig.rows!.length} rows
+          </p>
+          <div className="mt-2 max-h-48 overflow-auto rounded-lg border border-teal-100 scrollbar-thin">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 bg-teal-50 text-teal-700">
+                <tr>
+                  {widget.tableConfig.columns.map((col, i) => (
+                    <th key={i} className="px-2 py-1.5 font-semibold">
+                      {String(col)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-teal-100">
+                {widget.tableConfig.rows!.slice(0, 25).map((row, r) => (
+                  <tr key={r}>
+                    {(Array.isArray(row) ? row : widget.tableConfig!.columns.map((c) => (row as Record<string, unknown>)?.[c])).map(
+                      (cell, c) => (
+                        <td key={c} className="px-2 py-1.5 tabular-nums text-ink">
+                          {cell == null ? '' : String(cell)}
+                        </td>
+                      ),
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {widget.chartData && widget.chartData.length > 0 && (
         <div className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-teal-600">Chart data</p>
@@ -99,7 +140,7 @@ function WidgetInspector({ widget, onClose }: { widget: DashboardWidget; onClose
 
 export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tiles, widgets, dashboardSize }) => {
   const widgetMap = useMemo(() => {
-    const map = new Map<string, DashboardWidget>()
+    const map = new Map<string, VistaWidget>()
     widgets.forEach((w) => {
       map.set(w.id, w)
       if (w.widgetId) map.set(w.widgetId, w)
@@ -109,7 +150,7 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
-  const [selected, setSelected] = useState<DashboardWidget | null>(null)
+  const [selected, setSelected] = useState<VistaWidget | null>(null)
 
   // Non-overlapping 12-column grid layout resolver
   // Ensures every single tile occupies its own dedicated space with zero overlapping.
@@ -126,7 +167,9 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
       .map((tile, idx) => {
         const widgetId = tile.widgetId || tile.widgetIds?.[0]
         const widget = widgetId ? widgetMap.get(widgetId) : undefined
-        const type = widget?.componentType || 'OTHER'
+        // Structural components (header, sidebar, filters) are laid out like OTHER: one compact row.
+        const rawType = widget?.componentType || 'OTHER'
+        const type = ['KPI_CARD', 'CHART', 'TABLE'].includes(rawType) ? rawType : 'OTHER'
         const grid = tile.grid ?? widget?.grid
         const pos = widget?.position
 
@@ -194,8 +237,8 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
     }
 
     const placed: Array<{
-      tile: DashboardTile
-      widget?: DashboardWidget
+      tile: VistaTile
+      widget?: VistaWidget
       type: string
       colOffset: number
       rowOffset: number
@@ -246,7 +289,8 @@ export const AbsoluteLayoutViewer: React.FC<AbsoluteLayoutViewerProps> = ({ tile
       placed.push({
         tile: item.tile,
         widget: item.widget,
-        type: item.type,
+        // Label the tile with its real component type (e.g. SIDEBAR), not the layout group.
+        type: item.widget?.componentType || item.type,
         colOffset: placedC,
         rowOffset: placedR,
         colSpan: item.colSpan,

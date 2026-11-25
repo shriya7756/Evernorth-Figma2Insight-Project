@@ -12,7 +12,7 @@ import {
   Sparkles,
   TrendingUp,
 } from 'lucide-react'
-import { DashboardWidget, LayoutResult, StorageBackend } from '../../types'
+import { LayoutResult, StorageBackend, VistaWidget } from '../../types'
 import { routeHref } from '../../hooks/useHashRoute'
 import { Alert } from '../ui/Alert'
 import { Badge } from '../ui/Badge'
@@ -189,7 +189,7 @@ export function ResultPanel({ result, storage, onViewJson, onDownload }: ResultP
           {/* TAB 1: ALL WIDGETS */}
           {inspectTab === 'widgets' && (
             <div className="space-y-3">
-              {widgets.map((widget: DashboardWidget, index: number) => (
+              {widgets.map((widget: VistaWidget, index: number) => (
                 <div
                   key={widget.id || index}
                   className="rounded-xl border border-charcoal-200 bg-white p-3.5 shadow-xs hover:border-teal-300 transition"

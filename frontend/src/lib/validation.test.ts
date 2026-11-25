@@ -43,4 +43,9 @@ describe('validateDesignFile', () => {
     expect(validateDesignFile({ name: 'design.json', size: 0 })).toMatch(/empty/)
     expect(validateDesignFile({ name: 'design.json', size: 60 * 1024 * 1024 })).toMatch(/50 MB/)
   })
+
+  it('uses the limit reported by the server', () => {
+    expect(validateDesignFile({ name: 'design.json', size: 30 * 1024 * 1024 }, 25 * 1024 * 1024)).toMatch(/25 MB/)
+    expect(validateDesignFile({ name: 'design.json', size: 20 * 1024 * 1024 }, 25 * 1024 * 1024)).toBeNull()
+  })
 })

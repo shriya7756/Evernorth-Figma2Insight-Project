@@ -68,7 +68,8 @@ class PackageDetails(BaseModel):
 
 class GenerateRequest(BaseModel):
     figmaJson: Optional[Dict[str, Any]] = None
-    designId: Optional[str] = Field(None, max_length=120)
+    # Workspace id returned by /api/upload or /api/load-plugin-data (32 lowercase hex characters).
+    designId: Optional[str] = Field(None, pattern=r"^[a-f0-9]{32}$")
     packageDetails: Optional[PackageDetails] = None
     reclassify: Optional[bool] = False
     includeChrome: Optional[bool] = False

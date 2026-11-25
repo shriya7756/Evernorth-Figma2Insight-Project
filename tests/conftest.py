@@ -15,7 +15,9 @@ if str(ROOT) not in sys.path:
 os.environ.pop("MONGODB_URI", None)
 
 import server  # noqa: E402
+from backend.ratelimit import RateLimiter  # noqa: E402
 from backend.storage import FileHistoryStore, MongoHistoryStore  # noqa: E402
+from backend.workspaces import WorkspaceManager  # noqa: E402
 
 SAMPLE_FIGMA = ROOT / "dataset" / "new_dashboard" / "figma_data.json"
 
@@ -32,6 +34,8 @@ def isolated_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "CLEAN_PREDICTIONS_FILE", tmp_path / "clean_predictions.json")
     monkeypatch.setattr(server, "GRID_LAYOUT_FILE", tmp_path / "grid_layout.json")
     monkeypatch.setattr(server, "PAGE_FILE", tmp_path / "page.json")
+    monkeypatch.setattr(server, "workspaces", WorkspaceManager(tmp_path / "workspaces"))
+    monkeypatch.setattr(server, "write_limiter", RateLimiter(0))
     return tmp_path
 
 

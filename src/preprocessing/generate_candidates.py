@@ -2,7 +2,16 @@
 import json
 import os
 import re
+import logging
 from collections import defaultdict
+
+_logger = logging.getLogger("figma2insight.candidates")
+
+
+def _trace(*args):
+    """Candidate-selection trace: debug logging (never stdout, so non-ASCII layer names are safe)."""
+    if _logger.isEnabledFor(logging.DEBUG):
+        _logger.debug(" ".join(str(a) for a in args))
 
 # ============================================================
 # PATHS
@@ -66,7 +75,7 @@ UI_WORDS = (
 # intentionally target panel-level containers, not individual controls.
 PANEL_NAME_ALIASES = {
     "header", "page header", "dashboard header", "main header",
-    "navbar", "nav bar", "navigation bar", "navigation panel",
+    "navbar", "nav bar","navigation", "navigation bar", "navigation panel",
     "sidebar", "side bar", "side navigation", "side nav",
     "left sidebar", "main sidebar", "topbar", "top bar",
     "filter", "filters", "filter panel", "filters panel",
@@ -165,7 +174,7 @@ def load_nodes(data):
     """Load either flattened JSON or a native Figma API export."""
 
     if isinstance(data.get("nodes"), list):
-        print("Detected format: nodes")
+        _trace("Detected format: nodes")
         nodes = data["nodes"]
 
         # Normalize flattened nodes too.
@@ -178,7 +187,7 @@ def load_nodes(data):
     document = data.get("document")
 
     if isinstance(document, dict):
-        print("Detected format: document -> children")
+        _trace("Detected format: document -> children")
 
         nodes = []
         for child in document.get("children", []) or []:
@@ -188,11 +197,11 @@ def load_nodes(data):
 
     # Also accept a directly exported tree.
     if isinstance(data.get("children"), list):
-        print("Detected format: children")
+        _trace("Detected format: children")
 
         return flatten_nodes(data)
 
-    print("WARNING: Unrecognized JSON structure.")
+    _trace("WARNING: Unrecognized JSON structure.")
     return []
 
 
@@ -561,7 +570,7 @@ def is_component_candidate(node, info):
     name = norm(node.get("name"))
 
     if info["width"] < 70 or info["height"] < 40:
-        print(
+        _trace(
             f"REJECT dimensions: {name!r} "
             f"{info['width']}x{info['height']}"
         )
@@ -575,33 +584,43 @@ def is_component_candidate(node, info):
             or info["direct_container_count"] >= 1
             or info["graphic_count"] >= 2
         ):
-            print(f"KEEP panel candidate: {name!r}")
+            _trace(f"KEEP panel candidate: {name!r}")
             return True
-        print(f"REJECT weak panel candidate: {name!r}")
+        _trace(f"REJECT weak panel candidate: {name!r}")
         return False
 
     # Generic "header" is treated as a panel only when it passes the named-panel
     # rule above. Other internal chart/table subparts should still be rejected.
     if is_internal(node):
-        print(f"REJECT internal: {name!r}")
+        _trace(f"REJECT internal: {name!r}")
         return False
 
     if is_ui(node):
-        print(f"REJECT UI: {name!r}")
+        _trace(f"REJECT UI: {name!r}")
         return False
 
     if looks_like_layout_wrapper(node, info):
-        print(f"REJECT wrapper: {name!r}")
+        _trace(f"REJECT wrapper: {name!r}")
         return False
 
     if is_small_ui_container(node, info):
-        print(f"REJECT small UI container: {name!r}")
+        _trace(f"REJECT small UI container: {name!r}")
         return False
 
 
     sem = semantic_strength(node, info)
     strong = strong_component_signal(node, info)
     candidate_score = score(node, info)
+
+    # Text-based KPI cards with a label, value, and supporting context.
+    if (
+        info["area"] >= 20000
+        and info["text_count"] >= 3
+        and info["numeric_count"] >= 1
+        and info["graphic_count"] == 0
+        and info["direct_container_count"] == 0
+    ):
+        return True
 
     # Explicitly named KPI cards.
     if name.startswith(("kpi", "metric")) and info["area"] >= 4000:
@@ -680,7 +699,7 @@ def is_component_candidate(node, info):
     ):
         return True
 
-    print(
+    _trace(
         f"REJECT no rule matched: {name!r} "
         f"type={node.get('type')} "
         f"size={info['width']}x{info['height']} "
@@ -772,7 +791,7 @@ def remove_nested(candidates, node_map, children):
             if is_panel_candidate_name(node_map.get(ancestor_id, {}))
         ]
         if panel_ancestor_ids:
-            print(
+            _trace(
                 f"DROP nested child under panel: {candidate.get('name')!r} "
                 f"parent={node_map[panel_ancestor_ids[0]].get('name')!r}"
             )
@@ -791,11 +810,12 @@ def remove_nested(candidates, node_map, children):
         ):
             kept.append(candidate)
             continue
-
-        if is_internal(node_map[cid]):
+        # Preserve explicitly named panel candidates.
+        if is_panel_candidate_name(node_map[cid]):
+            kept.append(candidate)
             continue
-
-        # Preserve meaningful children rather than a wrapper around them.
+        # Preserve explicitly named panel candidates.
+        # apper around them.
         if (
             child_info["area"] >= max(12000, parent_info["area"] * 0.18)
             or (

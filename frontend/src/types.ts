@@ -19,11 +19,11 @@ export interface CandidateComponent {
 }
 
 export interface PredictedComponent extends CandidateComponent {
-  predicted_type: 'CHART' | 'KPI_CARD' | 'TABLE' | 'FILTER' | 'HEADER' | 'OTHER'
+  predicted_type: 'CHART' | 'KPI_CARD' | 'TABLE' | 'FILTER' | 'HEADER' | 'SIDEBAR' | 'OTHER'
   confidence?: number
 }
 
-export interface DashboardTile {
+export interface VistaTile {
   tileId: string
   id?: string
   contentId: string
@@ -37,8 +37,6 @@ export interface DashboardTile {
   grid: GridPosition
 }
 
-export type VistaTile = DashboardTile
-
 export interface AbsolutePosition {
   x: number
   y: number
@@ -46,7 +44,7 @@ export interface AbsolutePosition {
   height: number
 }
 
-export interface DashboardWidget {
+export interface VistaWidget {
   id: string
   widgetId: string
   type: string
@@ -58,6 +56,9 @@ export interface DashboardWidget {
   position?: AbsolutePosition
   text?: string[]
   chartData?: Array<{ label: string; value: number }>
+  chartText?: string[]
+  chartDataWarning?: string
+  tableDataWarning?: string
 
   // KPI content
   kpiValue?: string
@@ -73,12 +74,11 @@ export interface DashboardWidget {
   tableConfig?: {
     columns: string[]
     rows?: unknown[]
+    records?: Array<Record<string, unknown>>
   }
 }
 
-export type VistaWidget = DashboardWidget
-
-export interface DashboardPageJson {
+export interface VistaPageJson {
   contentId: string
   slideId: string
   pageId: string
@@ -98,8 +98,8 @@ export interface DashboardPageJson {
     sourceWidth: number
     sourceHeight: number
   }
-  tiles: DashboardTile[]
-  widgets: DashboardWidget[]
+  tiles: VistaTile[]
+  widgets: VistaWidget[]
   backgroundPaths?: unknown[]
   validation: {
     componentCount: number
@@ -109,8 +109,6 @@ export interface DashboardPageJson {
     validationErrors?: string[]
   }
 }
-
-export type VistaPageJson = DashboardPageJson
 
 export interface PackageDetails {
   subjectArea: string
@@ -168,7 +166,7 @@ export interface PipelineResult {
       }
     }>
   }
-  pageJson: DashboardPageJson
+  pageJson: VistaPageJson
   stats: {
     widgets: number
     tiles: number
@@ -191,6 +189,7 @@ export interface BackendStatus {
   pluginDataReceived: boolean
   designName: string | null
   storage?: { backend: StorageBackend; healthy: boolean }
+  maxUploadMb?: number
   timestamp: number
 }
 
@@ -199,6 +198,10 @@ export interface LoadedDesign {
   nodeCount: number
   dimensions: { width: number; height: number }
   figmaJson: unknown
+  /** Server-side workspace for this design; sent with every pipeline stage. */
+  designId?: string
+  /** Import code from the Figma plugin, when the design was loaded with one. */
+  importCode?: string
   filename?: string
   source: 'plugin' | 'upload'
 }
@@ -209,7 +212,7 @@ export interface LayoutResult {
   runId: string
   saved: boolean
   gridLayout: PipelineResult['gridLayout']
-  pageJson: DashboardPageJson
+  pageJson: VistaPageJson
   stats: { widgets: number; tiles: number; needAttention: number }
 }
 

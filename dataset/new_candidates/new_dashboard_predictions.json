@@ -1,5 +1,5 @@
 {
-  "source": "dataset\\new_candidates\\new_dashboard_candidates.json",
+  "source": "dataset/new_candidates/new_dashboard_candidates.json",
   "candidate_count": 17,
   "predictions": [
     {

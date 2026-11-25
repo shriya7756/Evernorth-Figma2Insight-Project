@@ -6,8 +6,11 @@ pymongo[srv]>=4.6
 dnspython>=2.0
 
 # ML pipeline
-pandas>=2.0
+# The bundled model artifacts were written by XGBoost 3.2 (models/xgboost_model.json) and
+# scikit-learn 1.7.2 (models/label_encoder.pkl). Keep these ranges in step with the artifacts;
+# retrain and re-save the model before moving to a new major/minor version.
+pandas>=2.0,<3.2
 numpy>=1.26
-xgboost>=2.0
-scikit-learn>=1.4
+xgboost>=3.2,<4
+scikit-learn>=1.7.2,<1.8
 joblib>=1.3

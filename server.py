@@ -1,6 +1,6 @@
 """
 Figma2Insight API server.
-Connects the frontend to the XGBoost ML pipeline and Dashboard page.json generation,
+Connects the frontend to the XGBoost ML pipeline and Vista page.json generation,
 and persists saved analyses (run history) in MongoDB when it is configured.
 """
 
@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi import Path as PathParam
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
@@ -28,6 +29,7 @@ if str(ROOT) not in sys.path:
 
 from backend import db  # noqa: E402
 from backend.config import get_settings  # noqa: E402
+from backend.ratelimit import RateLimiter  # noqa: E402
 from backend.schemas import (  # noqa: E402
     RUN_ID_PATTERN,
     GenerateRequest,
@@ -43,21 +45,26 @@ from backend.storage import (  # noqa: E402
     RunNotFoundError,
     StorageUnavailableError,
 )
+from backend.workspaces import DESIGN_ID_PATTERN, StagePaths, WorkspaceManager, WorkspaceNotFoundError  # noqa: E402
 from src.pipeline import (  # noqa: E402
     execute_full_pipeline,
     extract_nodes_from_figma_payload,
+    load_model,
+    model_classes,
     run_candidate_generation,
     run_classification,
-    run_dashboard_page_generation,
     run_grid_layout,
     run_prediction_cleaning,
     run_vista_page_generation,
 )
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-logger = logging.getLogger("figma2insight.api")
-
 settings = get_settings()
+
+logging.basicConfig(
+    level=getattr(logging, settings.log_level, logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger("figma2insight.api")
 
 # Storage paths
 STORAGE_DIR = ROOT / "outputs" / "designs"
@@ -69,10 +76,13 @@ CANDIDATES_FILE = ROOT / "dataset" / "new_candidates" / "new_dashboard_candidate
 RAW_PREDICTIONS_FILE = ROOT / "dataset" / "new_candidates" / "new_dashboard_predictions.json"
 CLEAN_PREDICTIONS_FILE = ROOT / "dataset" / "new_candidates" / "new_dashboard_clean_predictions.json"
 GRID_LAYOUT_FILE = ROOT / "outputs" / "dashboard_configs" / "new_dashboard" / "grid_layout.json"
-PAGE_FILE = ROOT / "outputs" / "dashboard_pages" / "new_dashboard" / "page.json"
-LEGACY_PAGE_FILE = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
+PAGE_FILE = ROOT / "outputs" / "vista_pages" / "new_dashboard" / "page.json"
+
+workspaces = WorkspaceManager(ROOT / "outputs" / "workspaces", ttl_hours=settings.workspace_ttl_hours)
+write_limiter = RateLimiter(settings.rate_limit_per_minute)
 
 _history_store: Optional[HistoryStore] = None
+_model_error: Optional[str] = None
 
 
 def get_history_store() -> HistoryStore:
@@ -93,8 +103,25 @@ def get_history_store() -> HistoryStore:
     return _history_store
 
 
+def _model_ready() -> bool:
+    """Load the classifier (once) and report whether inference is available."""
+    global _model_error
+    try:
+        load_model()
+        _model_error = None
+        return True
+    except Exception as exc:  # missing/corrupt artifacts or incompatible library versions
+        _model_error = f"{type(exc).__name__}: {exc}"
+        logger.error("XGBoost model could not be loaded: %s", _model_error)
+        return False
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Load the model at startup so the first request is fast and a broken deploy fails health checks.
+    if _model_ready():
+        logger.info("Model ready. Classes: %s", ", ".join(model_classes()))
+    workspaces.cleanup()
     if settings.mongodb_enabled:
         logger.info("Saved analyses will be stored in MongoDB database '%s'.", settings.mongodb_db_name)
         try:
@@ -137,6 +164,31 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+_PLUGIN_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "600",
+}
+_PLUGIN_PATHS = {"/ingest", "/api/health"}
+
+
+@app.middleware("http")
+async def plugin_ingest_cors(request: Request, call_next):
+    """Figma plugins call the API from a sandboxed iframe whose Origin is "null".
+
+    Only the plugin receiver and the health probe are opened to any origin; the rest of the
+    API keeps the CORS_ORIGINS allow-list above.
+    """
+    if request.url.path not in _PLUGIN_PATHS:
+        return await call_next(request)
+    if request.method == "OPTIONS":
+        return Response(status_code=204, headers=_PLUGIN_CORS_HEADERS)
+    response = await call_next(request)
+    response.headers.update(_PLUGIN_CORS_HEADERS)
+    return response
+
+
 # ============================================================================
 # ERROR HANDLING
 # ============================================================================
@@ -171,6 +223,14 @@ async def run_not_found_handler(_: Request, __: RunNotFoundError):
 @app.exception_handler(OutputNotFoundError)
 async def output_not_found_handler(_: Request, __: OutputNotFoundError):
     return JSONResponse(status_code=404, content={"detail": "That output is not available for this run."})
+
+
+@app.exception_handler(WorkspaceNotFoundError)
+async def workspace_not_found_handler(_: Request, __: WorkspaceNotFoundError):
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "This design session has expired. Load the design again to continue."},
+    )
 
 
 def _internal_error(action: str, exc: Exception) -> HTTPException:
@@ -213,6 +273,78 @@ def _package_meta(request: GenerateRequest) -> Optional[Dict[str, Any]]:
     return request.packageDetails.model_dump(exclude_none=True) if request.packageDetails else None
 
 
+def _stage_paths(design_id: Optional[str]) -> StagePaths:
+    """Files used by the staged pipeline: a per-design workspace, or the legacy shared files."""
+    if design_id:
+        return workspaces.paths(design_id)
+    # Legacy single-design mode (CLI scripts, local plugin receiver, older clients).
+    return StagePaths(
+        figma=ACTIVE_FIGMA,
+        candidates=CANDIDATES_FILE,
+        raw_predictions=RAW_PREDICTIONS_FILE,
+        clean_predictions=CLEAN_PREDICTIONS_FILE,
+        grid_layout=GRID_LAYOUT_FILE,
+        page=PAGE_FILE,
+    )
+
+
+def _request_figma(request: GenerateRequest, paths: StagePaths, missing_message: str) -> Dict[str, Any]:
+    if request.figmaJson:
+        return request.figmaJson
+    if not paths.figma.exists():
+        raise HTTPException(status_code=404, detail=missing_message)
+    try:
+        return _read_json(paths.figma)
+    except (OSError, ValueError) as exc:
+        raise _internal_error("Reading the design", exc) from exc
+
+
+def _parse_design_bytes(content: bytes) -> Dict[str, Any]:
+    """Validate raw bytes as a Figma design payload (REST export or plugin payload)."""
+    if len(content) > settings.max_upload_bytes:
+        raise HTTPException(status_code=413, detail=f"File is larger than the {settings.max_upload_mb} MB limit.")
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+    try:
+        figma_data = json.loads(content.decode("utf-8-sig"))
+    except (UnicodeDecodeError, ValueError):
+        raise HTTPException(status_code=400, detail="The file is not valid JSON.") from None
+    if not isinstance(figma_data, dict):
+        raise HTTPException(status_code=422, detail="Expected a JSON object exported from Figma.")
+
+    # Detect if this is a Dashboard page.json output file (not a Figma export)
+    if "slideId" in figma_data and ("tiles" in figma_data or "widgets" in figma_data):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "This looks like a Dashboard page.json output file, not a Figma design export. "
+                "To view this file, go to the 'Saved analyses' tab and open it from there, "
+                "or use the 'Preview' tab to load and inspect it."
+            ),
+        )
+    return figma_data
+
+
+def _open_workspace(figma_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate a design, store it in a fresh workspace and describe it for the client."""
+    nodes, doc_name, dims = _extract_nodes(figma_data)
+    if not nodes:
+        raise HTTPException(status_code=422, detail="No design layers were found in this file.")
+    raw = json.dumps(figma_data, ensure_ascii=False).encode("utf-8")
+    design_id = workspaces.create(raw)
+    # For large designs (> 2 MB), avoid echoing the entire JSON back over HTTP;
+    # later stages read it from the workspace via designId.
+    is_large = len(raw) > 2 * 1024 * 1024
+    return {
+        "success": True,
+        "designId": design_id,
+        "documentName": doc_name,
+        "nodeCount": len(nodes),
+        "dimensions": dims,
+        "figmaJson": None if is_large else figma_data,
+    }
+
+
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
@@ -227,11 +359,20 @@ def root_health():
         "frontend": "https://figma2insight.netlify.app",
     }
 
+@app.get("/api/health")
+def health():
+    """Liveness/readiness probe for the hosting platform: 200 only when the model can serve."""
+    ready = _model_ready()
+    body = {"status": "ok" if ready else "degraded", "modelLoaded": ready, "timestamp": time.time()}
+    if not ready:
+        return JSONResponse(status_code=503, content=body)
+    return body
+
+
 @app.get("/api/status")
 def get_status(store: HistoryStore = Depends(get_history_store)):
     """Return backend health, ML model status and storage status."""
-    model_path = ROOT / "models" / "xgboost_model.json"
-    encoder_path = ROOT / "models" / "label_encoder.pkl"
+    model_loaded = _model_ready()
 
     plugin_data_received = ACTIVE_FIGMA.exists()
 
@@ -248,9 +389,9 @@ def get_status(store: HistoryStore = Depends(get_history_store)):
 
     return {
         "status": "connected",
-        "modelLoaded": model_path.exists() and encoder_path.exists(),
-        "modelFile": str(model_path.name),
-        "classes": ["CHART", "KPI_CARD", "OTHER", "TABLE"],
+        "modelLoaded": model_loaded,
+        "modelFile": "xgboost_model.json",
+        "classes": model_classes() if model_loaded else [],
         "pipelineStages": [
             "Candidate Generation (gc)",
             "Semantic Feature Extraction (20 features)",
@@ -262,6 +403,7 @@ def get_status(store: HistoryStore = Depends(get_history_store)):
         "pluginDataReceived": plugin_data_received,
         "designName": design_name,
         "storage": {"backend": store.backend, "healthy": store.health()},
+        "maxUploadMb": settings.max_upload_mb,
         "timestamp": time.time()
     }
 
@@ -344,83 +486,63 @@ def get_design_details(design_id: str = PathParam(..., max_length=120)):
 
 
 @app.post("/api/upload")
-async def upload_figma_file(file: UploadFile = File(...)):
-    """Upload and validate a Figma JSON export."""
+async def upload_figma_file(request: Request, file: UploadFile = File(...)):
+    """Upload and validate a Figma JSON export into a private design workspace."""
+    write_limiter.check(request)
     if not file.filename or not file.filename.lower().endswith(".json"):
         raise HTTPException(status_code=400, detail="Only .json files exported from Figma are supported.")
 
     content = await file.read(settings.max_upload_bytes + 1)
-    if len(content) > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail=f"File is larger than the {settings.max_upload_mb} MB limit.")
-    if not content.strip():
-        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
-
-    try:
-        figma_data = json.loads(content.decode("utf-8-sig"))
-    except (UnicodeDecodeError, ValueError):
-        raise HTTPException(status_code=400, detail="The file is not valid JSON.") from None
-    if not isinstance(figma_data, dict):
-        raise HTTPException(status_code=422, detail="Expected a JSON object exported from Figma.")
-
-    # Detect if this is a Dashboard page.json output file (not a Figma export)
-    if "slideId" in figma_data and ("tiles" in figma_data or "widgets" in figma_data):
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "This looks like a Dashboard page.json output file, not a Figma design export. "
-                "To view this file, go to the 'Saved analyses' tab and open it from there, "
-                "or use the 'Preview' tab to load and inspect it."
-            ),
-        )
-
-    nodes, doc_name, dims = _extract_nodes(figma_data)
-    if not nodes:
-        raise HTTPException(status_code=422, detail="No design layers were found in this file.")
-
-    # Save to server's active design store so pipeline stages can process without re-uploading
-    ACTIVE_FIGMA.parent.mkdir(parents=True, exist_ok=True)
-    _write_json(ACTIVE_FIGMA, figma_data)
-
-    # For large uploads (> 2 MB), avoid echoing the entire JSON back over HTTP
-    is_large = len(content) > 2 * 1024 * 1024
-    return {
-        "success": True,
-        "filename": Path(file.filename).name[:200],
-        "documentName": doc_name,
-        "nodeCount": len(nodes),
-        "dimensions": dims,
-        "figmaJson": None if is_large else figma_data
-    }
+    figma_data = _parse_design_bytes(content)
+    loaded = await run_in_threadpool(_open_workspace, figma_data)
+    return {**loaded, "filename": Path(file.filename).name[:200]}
 
 
 @app.get("/api/load-plugin-data")
-def load_plugin_data():
-    """Load Figma data sent by the plugin from dataset/new_dashboard/figma_data.json."""
-    figma_data = _load_active_figma("No plugin data found yet. Send a design from the Figma plugin first.")
-    nodes, doc_name, dims = _extract_nodes(figma_data)
-    return {
-        "success": True,
-        "documentName": doc_name,
-        "nodeCount": len(nodes),
-        "dimensions": dims,
-        "figmaJson": figma_data
-    }
+def load_plugin_data(
+    code: Optional[str] = Query(None, pattern=RUN_ID_PATTERN, description="Import code shown by the Figma plugin"),
+    store: HistoryStore = Depends(get_history_store),
+):
+    """Load a design sent by the Figma plugin.
+
+    With `code`, the design the plugin sent with that import code is loaded from saved analyses
+    (works across server restarts and for many concurrent users). Without it, the most recent
+    design received by this server is used.
+    """
+    if code:
+        try:
+            figma_data = json.loads(store.get_output(code, "figma_data"))
+        except (RunNotFoundError, OutputNotFoundError):
+            raise HTTPException(
+                status_code=404,
+                detail="No design was found for that import code. Check the code shown in the Figma plugin.",
+            ) from None
+        loaded = _open_workspace(figma_data)
+        return {**loaded, "importCode": code}
+
+    if not ACTIVE_FIGMA.exists():
+        raise HTTPException(status_code=404, detail="No plugin data found yet. Send a design from the Figma plugin first.")
+    try:
+        figma_data = _read_json(ACTIVE_FIGMA)
+    except (OSError, ValueError) as exc:
+        raise _internal_error("Reading the active design", exc) from exc
+    return _open_workspace(figma_data)
 
 
 @app.post("/api/generate")
 def generate_dashboard(request: GenerateRequest):
     """
     Main generation endpoint: runs candidate generation, XGBoost inference,
-    grid mapping and Dashboard page.json generation in one call.
+    grid mapping and Vista page.json generation in one call.
     """
-    figma_data = request.figmaJson or _load_active_figma(
-        "No Figma JSON provided and no active design found.", status_code=400
-    )
+    paths = _stage_paths(request.designId)
+    figma_data = _request_figma(request, paths, "No Figma JSON provided and no active design found.")
     try:
         return execute_full_pipeline(
             figma_data=figma_data,
             package_metadata=_package_meta(request),
-            sync_to_disk=True
+            # Only the legacy single-design mode mirrors outputs to the shared CLI files.
+            sync_to_disk=request.designId is None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
@@ -431,9 +553,8 @@ def generate_dashboard(request: GenerateRequest):
 @app.post("/api/normalize")
 def normalize_candidates(request: GenerateRequest):
     """Run candidate generation stage only (Normalize)."""
-    figma_data = request.figmaJson or _load_active_figma(
-        "No Figma data found. Send a design from the plugin or upload a file first."
-    )
+    paths = _stage_paths(request.designId)
+    figma_data = _request_figma(request, paths, "No Figma data found. Send a design from the plugin or upload a file first.")
     nodes, doc_name, _ = _extract_nodes(figma_data)
     try:
         candidates = run_candidate_generation(nodes, dashboard_name=doc_name)
@@ -441,7 +562,10 @@ def normalize_candidates(request: GenerateRequest):
         raise _internal_error("Normalization", exc) from exc
 
     normalized = {"dashboard": doc_name, "candidate_count": len(candidates), "candidates": candidates}
-    _write_json(CANDIDATES_FILE, normalized)
+    _write_json(paths.candidates, normalized)
+    # Later stages must not reuse results computed for a previous normalization.
+    for stale in (paths.raw_predictions, paths.clean_predictions):
+        stale.unlink(missing_ok=True)
 
     return {
         "success": True,
@@ -452,16 +576,16 @@ def normalize_candidates(request: GenerateRequest):
     }
 
 
-def _load_candidates() -> Dict[str, Any]:
-    if not CANDIDATES_FILE.exists():
+def _load_candidates(paths: StagePaths) -> Dict[str, Any]:
+    if not paths.candidates.exists():
         raise HTTPException(status_code=409, detail="Run the Normalize stage first.")
-    return _read_json(CANDIDATES_FILE)
+    return _read_json(paths.candidates)
 
 
 @app.post("/api/preprocess")
 def preprocess_candidates(request: GenerateRequest):
     """Run preprocessing (feature extraction) on normalized candidates."""
-    cand_data = _load_candidates()
+    cand_data = _load_candidates(_stage_paths(request.designId))
     candidates = cand_data.get("candidates", [])
     doc_name = cand_data.get("dashboard", "new_dashboard")
 
@@ -488,7 +612,8 @@ def preprocess_candidates(request: GenerateRequest):
 @app.post("/api/classify")
 def classify_components(request: GenerateRequest):
     """Run XGBoost classification and prediction cleaning only."""
-    cand_data = _load_candidates()
+    paths = _stage_paths(request.designId)
+    cand_data = _load_candidates(paths)
     candidates = cand_data.get("candidates", [])
 
     try:
@@ -498,15 +623,15 @@ def classify_components(request: GenerateRequest):
         raise _internal_error("Classification", exc) from exc
 
     try:
-        source = CANDIDATES_FILE.relative_to(ROOT).as_posix()
+        source = paths.candidates.relative_to(ROOT).as_posix()
     except ValueError:
-        source = CANDIDATES_FILE.name
-    _write_json(RAW_PREDICTIONS_FILE, {
+        source = paths.candidates.name
+    _write_json(paths.raw_predictions, {
         "source": source,
         "candidate_count": len(raw_predictions),
         "predictions": raw_predictions,
     })
-    _write_json(CLEAN_PREDICTIONS_FILE, {
+    _write_json(paths.clean_predictions, {
         "dashboard": cand_data.get("dashboard", "new_dashboard"),
         "candidate_count": len(cleaned),
         "predictions": cleaned,
@@ -523,60 +648,70 @@ def classify_components(request: GenerateRequest):
     }
 
 
+def _build_layout(figma_data: Dict[str, Any], predictions: List[Dict[str, Any]], package_meta: Optional[Dict[str, Any]]):
+    grid_layout = run_grid_layout(figma_data, predictions)
+    source_nodes, _, _ = extract_nodes_from_figma_payload(figma_data)
+    vista_page = run_vista_page_generation(grid_layout, predictions, package_meta, source_nodes=source_nodes)
+    return grid_layout, vista_page
+
+
+def _save_run(
+    store: HistoryStore,
+    run_id: str,
+    vista_page: Dict[str, Any],
+    predictions: List[Dict[str, Any]],
+    package_details: Any,
+    outputs: Dict[str, Any],
+) -> bool:
+    record = RunRecord(
+        runId=run_id,
+        designName=vista_page["title"],
+        createdAt=datetime.now(timezone.utc),
+        componentCount=len(predictions),
+        widgetCount=len(vista_page["widgets"]),
+        tileCount=len(vista_page["tiles"]),
+        needAttention=vista_page["validation"]["reviewRequired"],
+        packageDetails=package_details,
+    )
+    try:
+        store.save_run(record, outputs)
+        return True
+    except (StorageUnavailableError, OutputTooLargeError) as exc:
+        # The generated dashboard is still returned; the client is told it wasn't saved.
+        logger.error("Could not save run %s: %r", run_id, exc.__cause__ or exc)
+        return False
+
+
 @app.post("/api/generate-layout")
 def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_history_store)):
-    """Generate the 12x12 grid layout and Dashboard page.json, then save the run as an analysis."""
-    if not CLEAN_PREDICTIONS_FILE.exists():
+    """Generate the 12x12 grid layout and Vista page.json, then save the run as an analysis."""
+    paths = _stage_paths(request.designId)
+    if not paths.clean_predictions.exists():
         raise HTTPException(status_code=409, detail="Run the Classify stage first.")
 
-    figma_data = request.figmaJson or _load_active_figma("No Figma data found.")
-    pred_data = _read_json(CLEAN_PREDICTIONS_FILE)
+    figma_data = _request_figma(request, paths, "No Figma data found.")
+    pred_data = _read_json(paths.clean_predictions)
     predictions = pred_data.get("predictions", [])
 
     try:
-        grid_layout = run_grid_layout(figma_data, predictions)
-        source_nodes, _, _ = extract_nodes_from_figma_payload(figma_data)
-        dashboard_page = run_dashboard_page_generation(
-            grid_layout,
-            predictions,
-            _package_meta(request),
-            source_nodes=source_nodes,
-        )
+        grid_layout, vista_page = _build_layout(figma_data, predictions, _package_meta(request))
     except Exception as exc:
         raise _internal_error("Layout generation", exc) from exc
 
     # Keep the standard locations up to date for the CLI scripts and standalone preview.
-    _write_json(GRID_LAYOUT_FILE, grid_layout)
-    _write_json(PAGE_FILE, dashboard_page)
-    _write_json(LEGACY_PAGE_FILE, dashboard_page)
+    _write_json(paths.grid_layout, grid_layout)
+    _write_json(paths.page, vista_page)
 
     run_id = request.runId or uuid.uuid4().hex[:8]
-    raw_predictions = _read_json(RAW_PREDICTIONS_FILE) if RAW_PREDICTIONS_FILE.exists() else None
+    raw_predictions = _read_json(paths.raw_predictions) if paths.raw_predictions.exists() else None
 
-    record = RunRecord(
-        runId=run_id,
-        designName=dashboard_page["title"],
-        createdAt=datetime.now(timezone.utc),
-        componentCount=len(predictions),
-        widgetCount=len(dashboard_page["widgets"]),
-        tileCount=len(dashboard_page["tiles"]),
-        needAttention=dashboard_page["validation"]["reviewRequired"],
-        packageDetails=request.packageDetails,
-    )
-
-    saved = True
-    try:
-        store.save_run(record, {
-            "figma_data": figma_data,
-            "raw_predictions": raw_predictions,
-            "clean_predictions": pred_data,
-            "grid_layout": grid_layout,
-            "page_json": dashboard_page,
-        })
-    except (StorageUnavailableError, OutputTooLargeError) as exc:
-        # The generated dashboard is still returned; the client is told it wasn't saved.
-        logger.error("Could not save run %s: %r", run_id, exc.__cause__ or exc)
-        saved = False
+    saved = _save_run(store, run_id, vista_page, predictions, request.packageDetails, {
+        "figma_data": figma_data,
+        "raw_predictions": raw_predictions,
+        "clean_predictions": pred_data,
+        "grid_layout": grid_layout,
+        "page_json": vista_page,
+    })
 
     return {
         "success": True,
@@ -584,31 +719,35 @@ def generate_layout(request: GenerateRequest, store: HistoryStore = Depends(get_
         "runId": run_id,
         "saved": saved,
         "gridLayout": grid_layout,
-        "pageJson": dashboard_page,
+        "pageJson": vista_page,
         "stats": {
-            "widgets": len(dashboard_page["widgets"]),
-            "tiles": len(dashboard_page["tiles"]),
-            "needAttention": dashboard_page["validation"]["reviewRequired"]
+            "widgets": len(vista_page["widgets"]),
+            "tiles": len(vista_page["tiles"]),
+            "needAttention": vista_page["validation"]["reviewRequired"]
         }
     }
 
 
+DesignIdQuery = Query(None, pattern=DESIGN_ID_PATTERN)
+
+
 @app.get("/api/download/page.json")
-def download_page_json():
+def download_page_json(designId: Optional[str] = DesignIdQuery):
     """Download the generated Dashboard page.json file."""
-    target_file = PAGE_FILE if PAGE_FILE.exists() else LEGACY_PAGE_FILE
-    if not target_file.exists():
+    page = _stage_paths(designId).page
+    if not page.exists():
         raise HTTPException(status_code=404, detail="No generated page.json found. Run generation first.")
-    return FileResponse(path=str(target_file), filename="page.json", media_type="application/json")
+    return FileResponse(path=str(page), filename="page.json", media_type="application/json")
 
 
 @app.get("/api/download/predictions.json")
-def download_predictions_json():
+def download_predictions_json(designId: Optional[str] = DesignIdQuery):
     """Download the cleaned XGBoost predictions."""
-    if not CLEAN_PREDICTIONS_FILE.exists():
+    clean = _stage_paths(designId).clean_predictions
+    if not clean.exists():
         raise HTTPException(status_code=404, detail="No predictions found.")
     return FileResponse(
-        path=str(CLEAN_PREDICTIONS_FILE),
+        path=str(clean),
         filename="new_dashboard_clean_predictions.json",
         media_type="application/json"
     )
@@ -670,31 +809,86 @@ def download_history_json(
     )
 
 
-@app.post("/ingest")
-async def plugin_ingest(file: UploadFile = File(None)):
-    """Compatibility endpoint for the Figma plugin."""
-    if not file:
-        raise HTTPException(status_code=400, detail="Missing payload")
-    content = await file.read(settings.max_upload_bytes + 1)
-    if len(content) > settings.max_upload_bytes:
+async def _read_ingest_body(request: Request) -> bytes:
+    """Read the plugin payload: a raw JSON body (current plugin) or a multipart `file` (older clients)."""
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > settings.max_upload_bytes + 1024 * 1024:
         raise HTTPException(status_code=413, detail=f"Payload is larger than the {settings.max_upload_mb} MB limit.")
-    try:
-        payload = json.loads(content.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError):
-        raise HTTPException(status_code=400, detail="Payload is not valid JSON.") from None
-    if not isinstance(payload, dict) or "document" not in payload:
-        raise HTTPException(status_code=400, detail="Missing document in design data")
+    content_type = request.headers.get("content-type", "")
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        upload = form.get("file")
+        if upload is None or isinstance(upload, str):
+            raise HTTPException(status_code=400, detail="Missing payload")
+        return await upload.read(settings.max_upload_bytes + 1)
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > settings.max_upload_bytes:
+            raise HTTPException(status_code=413, detail=f"Payload is larger than the {settings.max_upload_mb} MB limit.")
+    return bytes(body)
 
+
+def _process_plugin_design(payload: Dict[str, Any], store: HistoryStore) -> Dict[str, Any]:
+    """Run the full pipeline on a plugin payload and save it as an analysis."""
+    nodes, doc_name, _ = _extract_nodes(payload)
+    if not nodes:
+        raise HTTPException(status_code=422, detail="No design layers were found on this page.")
+
+    # Most recent plugin design, for "Check for plugin design" in the workspace (and local dev).
     _write_json(ACTIVE_FIGMA, payload)
+
     try:
-        result = execute_full_pipeline(payload)
+        candidates = run_candidate_generation(nodes, dashboard_name=doc_name)
+        raw_predictions = run_classification(candidates)
+        cleaned = run_prediction_cleaning(raw_predictions)
+        grid_layout, vista_page = _build_layout(payload, cleaned, None)
     except Exception as exc:
         raise _internal_error("Generation", exc) from exc
-    return {
-        "message": "Design received and Dashboard page.json generated.",
-        "widgets": result["stats"]["widgets"],
-        "tiles": result["stats"]["tiles"]
+
+    run_id = uuid.uuid4().hex[:8]
+    saved = _save_run(store, run_id, vista_page, cleaned, None, {
+        "figma_data": payload,
+        "raw_predictions": {"source": "figma-plugin", "candidate_count": len(raw_predictions), "predictions": raw_predictions},
+        "clean_predictions": {"dashboard": doc_name, "candidate_count": len(cleaned), "predictions": cleaned},
+        "grid_layout": grid_layout,
+        "page_json": vista_page,
+    })
+    stats = {
+        "widgets": len(vista_page["widgets"]),
+        "tiles": len(vista_page["tiles"]),
+        "needAttention": vista_page["validation"]["reviewRequired"],
     }
+    logger.info("Plugin design %r processed: run %s, %s (saved=%s)", doc_name, run_id, stats, saved)
+    return {
+        "success": True,
+        "saved": saved,
+        "message": "Design received and Dashboard page.json generated.",
+        "designName": vista_page["title"],
+        "runId": run_id if saved else None,
+        "importCode": run_id if saved else None,
+        "openUrl": f"{settings.frontend_url}/#/history?run={run_id}" if saved else None,
+        "nodeCount": len(nodes),
+        "componentCount": len(cleaned),
+        **stats,
+    }
+
+
+@app.post("/ingest")
+async def plugin_ingest(request: Request, store: HistoryStore = Depends(get_history_store)):
+    """Receiver for the Figma2Insight Figma plugin.
+
+    Accepts the current page as JSON, validates it, runs the full model pipeline and saves the
+    result as an analysis. The response carries an import code the user can enter in the
+    workspace (or a link straight to the saved analysis).
+    """
+    write_limiter.check(request)
+    content = await _read_ingest_body(request)
+    payload = _parse_design_bytes(content)
+    document = payload.get("document")
+    if not isinstance(document, dict) or not isinstance(document.get("children"), list):
+        raise HTTPException(status_code=400, detail="Missing document in design data")
+    return await run_in_threadpool(_process_plugin_design, payload, store)
 
 
 @app.get("/dashboard_preview.html")

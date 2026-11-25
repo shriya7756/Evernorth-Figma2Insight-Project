@@ -46,7 +46,10 @@ export function usePipeline() {
     [resetPipeline, toast],
   )
 
-  const loadFromPlugin = useCallback(async () => acceptDesign(await loadPluginData()), [acceptDesign])
+  const loadFromPlugin = useCallback(
+    async (importCode?: string) => acceptDesign(await loadPluginData(importCode)),
+    [acceptDesign],
+  )
   const loadFromFile = useCallback(async (file: File) => acceptDesign(await uploadFigmaFile(file)), [acceptDesign])
 
   const clearDesign = useCallback(() => {
@@ -57,8 +60,12 @@ export function usePipeline() {
   const execute = useCallback(
     async (stage: StageKey): Promise<boolean> => {
       if (!design) return false
-      // Only send figmaJson if present; if null/server-cached, the server reads the uploaded design from its store.
-      const source = design.figmaJson ? { figmaJson: design.figmaJson } : {}
+      // The designId scopes every stage to this design's private server workspace. figmaJson is only
+      // present for smaller designs; large ones are read from the workspace on the server.
+      const source = {
+        ...(design.designId ? { designId: design.designId } : {}),
+        ...(design.figmaJson ? { figmaJson: design.figmaJson } : {}),
+      }
 
       if (stage === 'layout') {
         const problems = validatePackageDetails(packageDetails)
