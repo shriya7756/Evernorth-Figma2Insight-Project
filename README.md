@@ -208,8 +208,8 @@ Figma JSON → Candidate generation → Feature extraction → XGBoost classific
 
 The classifier is the updated model from `vrinda07-ui/evernorth` (classes CHART, FILTER, HEADER, KPI_CARD, OTHER,
 SIDEBAR, TABLE; 20 features), with its chart, table and structural-component extraction. Training and research
-scripts (feature extraction, labelling, `src/model/train_*.py`, `src/model/predict.py`) are kept; see `steps.txt` for
-the command-line workflow, `INTEGRATION_REPORT.md` for what changed and `DEPLOYMENT.md` for production.
+scripts (feature extraction, labelling, `src/model/train_*.py`, `src/model/predict.py`) are kept; see
+`ONBOARDING_GUIDE.md` for the local setup workflow and `DEPLOYMENT.md` for production.
 
 ## Design system
 
